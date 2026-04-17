@@ -34,13 +34,13 @@ function Shell() {
 
     unsubs.push(
       api.on.stageUpdate((payload: any) => {
-        if (payload.status === 'start') {
+        if (payload.type === 'start') {
           dispatch({ type: 'stage:start', stageId: payload.stageId, capability: payload.capability });
-        } else if (payload.status === 'done') {
+        } else if (payload.type === 'done') {
           dispatch({ type: 'stage:done', stageId: payload.stageId, durationMs: payload.durationMs });
-        } else if (payload.status === 'degraded') {
+        } else if (payload.type === 'degraded') {
           dispatch({ type: 'stage:degraded', stageId: payload.stageId, reason: payload.reason });
-        } else if (payload.status === 'skipped') {
+        } else if (payload.type === 'skipped') {
           dispatch({ type: 'stage:skipped', stageId: payload.stageId, reason: payload.reason });
         }
       }),
@@ -48,11 +48,11 @@ function Shell() {
 
     unsubs.push(
       api.on.providerUpdate((payload: any) => {
-        if (payload.status === 'start') {
+        if (payload.type === 'start') {
           dispatch({ type: 'provider:start', stageId: payload.stageId, providerId: payload.providerId });
-        } else if (payload.status === 'done') {
+        } else if (payload.type === 'done') {
           dispatch({ type: 'provider:done', stageId: payload.stageId, providerId: payload.providerId, durationMs: payload.durationMs });
-        } else if (payload.status === 'fail') {
+        } else if (payload.type === 'fail') {
           dispatch({ type: 'provider:fail', stageId: payload.stageId, providerId: payload.providerId, error: payload.error });
         }
       }),

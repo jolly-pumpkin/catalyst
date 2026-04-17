@@ -9,8 +9,14 @@ export function registerDocsHandlers(): void {
     return listDocsFolder(ctx.docsDir);
   });
 
-  ipcMain.handle(IPC.DOCS_READ, async (_event, path: string) => {
-    return readResumeFile(path);
+  ipcMain.handle(IPC.DOCS_READ, async (_event, filePath: string) => {
+    const { resolve } = await import('node:path');
+    const ctx = getCatalystContext();
+    const resolved = resolve(filePath);
+    if (!resolved.startsWith(ctx.docsDir)) {
+      throw new Error('Path outside user docs directory');
+    }
+    return readResumeFile(filePath);
   });
 
   ipcMain.handle(IPC.SETTINGS_GET, async () => {

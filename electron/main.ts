@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 import { createBroker } from 'rhodium-core';
@@ -27,7 +28,6 @@ import { kanbanStorePlugin } from '../src/plugins/kanban-store.js';
 import { loadConfig, type CatalystConfig } from '../src/input.js';
 import { setCatalystContext, buildUserContext } from '../src/context.js';
 import { registerAllIpc } from './ipc/index.js';
-import { wireBrokerEvents } from './events.js';
 import { stopScheduler } from './scheduler.js';
 
 // Vite dev server / production build declarations
@@ -122,11 +122,6 @@ export async function createAppBroker(config: CatalystConfig, model: string): Pr
   await broker.activate();
   appBroker = broker;
 
-  // Wire broker events to renderer window
-  if (mainWindow) {
-    wireBrokerEvents(broker, mainWindow);
-  }
-
   return broker;
 }
 
@@ -182,19 +177,16 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', async () => {
-  stopScheduler();
-
-  if (appBroker) {
-    await appBroker.deactivate();
-    appBroker = null;
-  }
-
-  if (userBroker) {
-    await userBroker.deactivate();
-    userBroker = null;
-  }
-
   if (process.platform !== 'darwin') {
+    stopScheduler();
+    if (appBroker) {
+      await appBroker.deactivate();
+      appBroker = null;
+    }
+    if (userBroker) {
+      await userBroker.deactivate();
+      userBroker = null;
+    }
     app.quit();
   }
 });
