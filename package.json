@@ -1,7 +1,6 @@
 {
   "name": "catalyst",
   "main": ".vite/build/main.js",
-  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
