@@ -1,4 +1,4 @@
-import type { Database } from 'bun:sqlite';
+import type Database from 'better-sqlite3';
 import type { Plugin } from 'rhodium-core';
 import type { ATSType, CompanySource } from '../types.js';
 
@@ -14,7 +14,7 @@ export function companyStorePlugin(): Plugin {
       tags: ['indexer'],
     },
     activate(ctx) {
-      const db = ctx.resolve<Database>('catalog.db');
+      const db = ctx.resolve<Database.Database>('catalog.db');
 
       const atsDetect = ctx.resolve<{
         detect(url: string): Promise<{ atsType: ATSType; slug: string; name: string } | null>;
@@ -22,7 +22,7 @@ export function companyStorePlugin(): Plugin {
 
       ctx.provide('company.store', {
         async add(url: string): Promise<CompanySource> {
-          const existing = db.query('SELECT * FROM company_sources WHERE url = ?').get(url) as any;
+          const existing = db.prepare('SELECT * FROM company_sources WHERE url = ?').get(url) as any;
           if (existing) {
             return rowToCompanySource(existing);
           }
@@ -45,40 +45,38 @@ export function companyStorePlugin(): Plugin {
             enabled: true,
           };
 
-          db.run(
+          db.prepare(
             `INSERT INTO company_sources (id, name, url, ats_type, slug, added_at, job_count, enabled)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [source.id, source.name, source.url, source.atsType, source.slug,
-             source.addedAt, source.jobCount, source.enabled ? 1 : 0],
-          );
+          ).run(source.id, source.name, source.url, source.atsType, source.slug,
+             source.addedAt, source.jobCount, source.enabled ? 1 : 0);
 
           return source;
         },
 
         async remove(id: string): Promise<void> {
           // ON DELETE CASCADE in indexed_jobs FK handles cleanup
-          db.run('DELETE FROM company_sources WHERE id = ?', [id]);
+          db.prepare('DELETE FROM company_sources WHERE id = ?').run(id);
         },
 
         async list(): Promise<CompanySource[]> {
-          const rows = db.query('SELECT * FROM company_sources ORDER BY added_at DESC').all() as any[];
+          const rows = db.prepare('SELECT * FROM company_sources ORDER BY added_at DESC').all() as any[];
           return rows.map(rowToCompanySource);
         },
 
         async get(id: string): Promise<CompanySource | null> {
-          const row = db.query('SELECT * FROM company_sources WHERE id = ?').get(id) as any;
+          const row = db.prepare('SELECT * FROM company_sources WHERE id = ?').get(id) as any;
           return row ? rowToCompanySource(row) : null;
         },
 
         async setEnabled(id: string, enabled: boolean): Promise<void> {
-          db.run('UPDATE company_sources SET enabled = ? WHERE id = ?', [enabled ? 1 : 0, id]);
+          db.prepare('UPDATE company_sources SET enabled = ? WHERE id = ?').run(enabled ? 1 : 0, id);
         },
 
         async updateIndexed(id: string, jobCount: number): Promise<void> {
-          db.run(
+          db.prepare(
             'UPDATE company_sources SET last_indexed_at = ?, job_count = ? WHERE id = ?',
-            [new Date().toISOString(), jobCount, id],
-          );
+          ).run(new Date().toISOString(), jobCount, id);
         },
       });
     },

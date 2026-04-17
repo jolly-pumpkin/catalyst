@@ -1,4 +1,4 @@
-import type { Database } from 'bun:sqlite';
+import type Database from 'better-sqlite3';
 import type { Plugin } from 'rhodium-core';
 import type { ATSType, IndexedJob, RawJob } from '../types.js';
 
@@ -18,7 +18,7 @@ export function jobIndexStorePlugin(): Plugin {
       tags: ['indexer'],
     },
     activate(ctx) {
-      const db = ctx.resolve<Database>('catalog.db');
+      const db = ctx.resolve<Database.Database>('catalog.db');
 
       const upsertStmt = db.prepare(`
         INSERT INTO indexed_jobs (id, company_source_id, source, title, company, location,
@@ -54,20 +54,18 @@ export function jobIndexStorePlugin(): Plugin {
 
         async markInactive(companySourceId: string, activeIds: string[]): Promise<number> {
           if (activeIds.length === 0) {
-            const result = db.run(
+            const result = db.prepare(
               'UPDATE indexed_jobs SET is_active = 0 WHERE company_source_id = ? AND is_active = 1',
-              [companySourceId],
-            );
+            ).run(companySourceId);
             return result.changes;
           }
 
           const placeholders = activeIds.map(() => '?').join(',');
-          const result = db.run(
+          const result = db.prepare(
             `UPDATE indexed_jobs SET is_active = 0
              WHERE company_source_id = ? AND is_active = 1
              AND id NOT IN (${placeholders})`,
-            [companySourceId, ...activeIds],
-          );
+          ).run(companySourceId, ...activeIds);
           return result.changes;
         },
 
@@ -102,14 +100,14 @@ export function jobIndexStorePlugin(): Plugin {
 
           sql += ' ORDER BY posted_at DESC LIMIT 200';
 
-          const rows = db.query(sql).all(...params) as any[];
+          const rows = db.prepare(sql).all(...params) as any[];
           return rows.map(rowToIndexedJob);
         },
 
         async stats(): Promise<{ totalJobs: number; activeJobs: number; companies: number }> {
-          const total = db.query('SELECT COUNT(*) as c FROM indexed_jobs').get() as any;
-          const active = db.query('SELECT COUNT(*) as c FROM indexed_jobs WHERE is_active = 1').get() as any;
-          const companies = db.query('SELECT COUNT(DISTINCT company_source_id) as c FROM indexed_jobs').get() as any;
+          const total = db.prepare('SELECT COUNT(*) as c FROM indexed_jobs').get() as any;
+          const active = db.prepare('SELECT COUNT(*) as c FROM indexed_jobs WHERE is_active = 1').get() as any;
+          const companies = db.prepare('SELECT COUNT(DISTINCT company_source_id) as c FROM indexed_jobs').get() as any;
           return {
             totalJobs: total.c,
             activeJobs: active.c,

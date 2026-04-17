@@ -1,4 +1,4 @@
-import type { Database } from 'bun:sqlite';
+import type Database from 'better-sqlite3';
 import type { Plugin } from 'rhodium-core';
 import type { JobKanbanColumn, FeedbackTag, JobFeedback, RankedJob } from '../types.js';
 
@@ -47,9 +47,9 @@ export function kanbanStorePlugin(): Plugin {
       tags: ['kanban'],
     },
     activate(ctx) {
-      const db = ctx.resolve<Database>('catalog.db');
+      const db = ctx.resolve<Database.Database>('catalog.db');
 
-      db.run(`CREATE TABLE IF NOT EXISTS job_kanban (
+      db.exec(`CREATE TABLE IF NOT EXISTS job_kanban (
         job_id TEXT PRIMARY KEY,
         company_source_id TEXT NOT NULL,
         column_name TEXT NOT NULL DEFAULT 'new',
@@ -64,8 +64,8 @@ export function kanbanStorePlugin(): Plugin {
         updated_at TEXT NOT NULL
       )`);
 
-      db.run(`CREATE INDEX IF NOT EXISTS idx_kanban_company ON job_kanban(company_source_id)`);
-      db.run(`CREATE INDEX IF NOT EXISTS idx_kanban_column ON job_kanban(column_name)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_kanban_company ON job_kanban(company_source_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_kanban_column ON job_kanban(column_name)`);
 
       const getColumn = db.prepare('SELECT column_name FROM job_kanban WHERE job_id = ?');
       const upsert = db.prepare(
@@ -98,14 +98,13 @@ export function kanbanStorePlugin(): Plugin {
           const tags = feedback?.tags ? JSON.stringify(feedback.tags) : null;
           const notes = feedback?.notes ?? null;
           // Just update column + feedback (preserve existing job metadata)
-          db.run(
+          db.prepare(
             `UPDATE job_kanban SET column_name = ?, tags = ?, notes = ?, updated_at = ? WHERE job_id = ?`,
-            [toColumn, tags, notes, now, jobId],
-          );
+          ).run(toColumn, tags, notes, now, jobId);
         },
 
         getColumnJobs(companySourceId: string, column: JobKanbanColumn) {
-          const rows = db.query(
+          const rows = db.prepare(
             `SELECT job_id, job_title, job_company, overall_score FROM job_kanban WHERE company_source_id = ? AND column_name = ?`
           ).all(companySourceId, column) as { job_id: string; job_title: string; job_company: string; overall_score: number }[];
           return rows.map((r) => ({
@@ -121,13 +120,13 @@ export function kanbanStorePlugin(): Plugin {
             ? `SELECT * FROM job_kanban WHERE company_source_id = ? AND (column_name = 'rejected' OR column_name = 'not-applying')`
             : `SELECT * FROM job_kanban WHERE column_name = 'rejected' OR column_name = 'not-applying'`;
           const rows = companySourceId
-            ? db.query(sql).all(companySourceId) as any[]
-            : db.query(sql).all() as any[];
+            ? db.prepare(sql).all(companySourceId) as any[]
+            : db.prepare(sql).all() as any[];
           return rows.map(rowToFeedback);
         },
 
         getFeedback(jobId: string): JobFeedback | null {
-          const row = db.query(
+          const row = db.prepare(
             `SELECT * FROM job_kanban WHERE job_id = ? AND (column_name = 'rejected' OR column_name = 'not-applying')`
           ).get(jobId) as any;
           return row ? rowToFeedback(row) : null;
