@@ -1,0 +1,36 @@
+Jane Doe
+Senior Software Engineer
+
+CONTACT
+jane.doe@email.com | San Francisco, CA | Open to Remote
+
+SUMMARY
+Senior software engineer with 7 years of experience building web applications and distributed systems. Passionate about TypeScript, React, and developer tooling. Looking for remote senior or staff-level roles.
+
+EXPERIENCE
+
+Senior Software Engineer — Stripe (2022–Present)
+- Led migration of payment processing pipeline from JavaScript to TypeScript
+- Built React component library used by 40+ internal teams
+- Designed event-driven architecture handling 50k events/sec
+- Mentored 3 junior engineers
+
+Software Engineer — Vercel (2020–2022)
+- Core contributor to Next.js build system
+- Implemented incremental static regeneration features
+- Reduced build times by 40% through caching improvements
+
+Software Engineer — Shopify (2019–2020)
+- Built merchant analytics dashboard using React and GraphQL
+- Implemented real-time inventory tracking system
+
+SKILLS
+TypeScript, JavaScript, React, Node.js, GraphQL, PostgreSQL, Redis, AWS, Docker, Kubernetes, Git, CI/CD
+
+EDUCATION
+B.S. Computer Science — UC Berkeley (2019)
+
+PREFERENCES
+- Remote-first or fully remote
+- Salary range: $180,000 – $220,000 USD
+- Interested in: developer tools, infrastructure, payments
