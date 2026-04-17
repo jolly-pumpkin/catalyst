@@ -1,0 +1,89 @@
+.row {
+  border-bottom: 1px solid var(--border);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.header:hover {
+  background: var(--bg-secondary);
+}
+
+.icon {
+  width: 18px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.name {
+  flex: 1;
+  font-size: 13px;
+}
+
+.duration {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.chevron {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Status colors */
+.statusPending { color: var(--text-secondary); }
+.statusRunning { color: var(--accent); }
+.statusDone { color: var(--success); }
+.statusFailed { color: var(--danger); }
+.statusDegraded { color: var(--warning); }
+
+/* Provider sub-rows */
+.providers {
+  padding-left: 30px;
+  padding-bottom: 4px;
+}
+
+.provider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.providerIcon {
+  width: 14px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.providerName {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.error {
+  color: var(--danger);
+  font-size: 11px;
+}
+
+/* CSS spinner animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}

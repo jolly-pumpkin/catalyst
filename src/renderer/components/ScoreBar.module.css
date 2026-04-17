@@ -1,0 +1,45 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 50px;
+}
+
+.bar {
+  display: flex;
+  gap: 2px;
+}
+
+.segment {
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.empty {
+  background: var(--border);
+}
+
+.high {
+  background: var(--success);
+}
+
+.mid {
+  background: var(--warning);
+}
+
+.low {
+  background: var(--danger);
+}
+
+.value {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 24px;
+  text-align: right;
+}
