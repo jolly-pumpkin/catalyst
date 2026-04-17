@@ -4,7 +4,9 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpack: '**/better-sqlite3/**',
+    },
   },
   makers: [new MakerZIP({})],
   plugins: [

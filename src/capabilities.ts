@@ -69,7 +69,7 @@ export const ResultsQuery = defineCapability<{
 
 // --- Job indexer capabilities ---
 
-export const CatalogDB = defineCapability<import('bun:sqlite').Database>('catalog.db');
+export const CatalogDB = defineCapability<import('better-sqlite3').Database>('catalog.db');
 
 export const ATSDetect = defineCapability<{
   detect(url: string): Promise<{ atsType: ATSType; slug: string; name: string } | null>;

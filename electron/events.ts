@@ -9,7 +9,7 @@ import { getModel } from './main.js';
  * Ported from src/index.ts wireBrokerEvents() — replaces TUI dispatch with
  * win.webContents.send() calls.
  */
-export function wireBrokerEvents(broker: Broker, win: BrowserWindow): void {
+export function wireBrokerEvents(broker: Broker, getWindow: () => BrowserWindow | null): void {
   let currentRunId: string | null = null;
   let currentResumeName = '';
 
@@ -19,28 +19,36 @@ export function wireBrokerEvents(broker: Broker, win: BrowserWindow): void {
     });
   };
 
+  /** Safe send — checks window is still alive before sending. */
+  const send = (channel: string, data: unknown) => {
+    const win = getWindow();
+    if (win && !win.isDestroyed()) {
+      send(channel, data);
+    }
+  };
+
   // --- Stage events → renderer ---
 
   on(STAGE_EVENTS.STARTED, ({ stageId, capability }: any) => {
-    win.webContents.send(IPC.PIPELINE_STAGE_UPDATE, {
+    send(IPC.PIPELINE_STAGE_UPDATE, {
       type: 'start', stageId, capability,
     });
   });
 
   on(STAGE_EVENTS.COMPLETE, ({ stageId, durationMs }: any) => {
-    win.webContents.send(IPC.PIPELINE_STAGE_UPDATE, {
+    send(IPC.PIPELINE_STAGE_UPDATE, {
       type: 'done', stageId, durationMs,
     });
   });
 
   on(STAGE_EVENTS.DEGRADED, ({ stageId, reason }: any) => {
-    win.webContents.send(IPC.PIPELINE_STAGE_UPDATE, {
+    send(IPC.PIPELINE_STAGE_UPDATE, {
       type: 'degraded', stageId, reason,
     });
   });
 
   on(STAGE_EVENTS.SKIPPED, ({ stageId, reason }: any) => {
-    win.webContents.send(IPC.PIPELINE_STAGE_UPDATE, {
+    send(IPC.PIPELINE_STAGE_UPDATE, {
       type: 'skipped', stageId, reason,
     });
   });
@@ -48,13 +56,13 @@ export function wireBrokerEvents(broker: Broker, win: BrowserWindow): void {
   // --- Provider events → renderer ---
 
   on(PROVIDER_EVENTS.SELECTED, ({ stageId, providerId }: any) => {
-    win.webContents.send(IPC.PIPELINE_PROVIDER_UPDATE, {
+    send(IPC.PIPELINE_PROVIDER_UPDATE, {
       type: 'start', stageId, providerId,
     });
   });
 
   on(PROVIDER_EVENTS.FAILED, ({ stageId, providerId, error }: any) => {
-    win.webContents.send(IPC.PIPELINE_PROVIDER_UPDATE, {
+    send(IPC.PIPELINE_PROVIDER_UPDATE, {
       type: 'fail', stageId, providerId, error: String(error),
     });
   });
@@ -132,7 +140,13 @@ export function wireBrokerEvents(broker: Broker, win: BrowserWindow): void {
   });
 
   // Expose a way to set resume name for trace recording
-  (broker as any).__setCurrentResumeName = (name: string) => {
+  _setResumeName = (name: string) => {
     currentResumeName = name;
   };
+}
+
+let _setResumeName: ((name: string) => void) | null = null;
+
+export function setCurrentResumeName(name: string): void {
+  if (_setResumeName) _setResumeName(name);
 }

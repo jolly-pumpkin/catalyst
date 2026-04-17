@@ -42,7 +42,7 @@ export function startScheduler(broker: Broker, config: CatalystConfig): void {
 
         // Push to renderer
         const win = getMainWindow();
-        if (win) {
+        if (win && !win.isDestroyed()) {
           win.webContents.send(IPC.INDEX_NEW_JOBS, {
             newJobCount,
             totalActive: after.activeJobs,

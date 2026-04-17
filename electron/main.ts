@@ -135,6 +135,7 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 
@@ -176,17 +177,22 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on('window-all-closed', async () => {
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    stopScheduler();
-    if (appBroker) {
-      await appBroker.deactivate();
-      appBroker = null;
-    }
-    if (userBroker) {
-      await userBroker.deactivate();
-      userBroker = null;
-    }
     app.quit();
   }
+});
+
+app.on('will-quit', async (e) => {
+  e.preventDefault();
+  stopScheduler();
+  if (appBroker) {
+    await appBroker.deactivate();
+    appBroker = null;
+  }
+  if (userBroker) {
+    await userBroker.deactivate();
+    userBroker = null;
+  }
+  app.exit(0);
 });

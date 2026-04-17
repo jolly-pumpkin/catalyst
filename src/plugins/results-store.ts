@@ -66,24 +66,32 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
         job_json TEXT NOT NULL
       )`);
 
+      const saveTransaction = db.transaction((
+        runId: string, resumeName: string, model: string,
+        iteration: number, durationMs: number, jobs: RankedJob[],
+        companySourceId: string | null,
+      ) => {
+        db.prepare(
+          `INSERT INTO runs (id, created_at, resume_name, iteration, duration_ms, model, company_source_id)
+           VALUES (?,?,?,?,?,?,?)`,
+        ).run(runId, new Date().toISOString(), resumeName, iteration, durationMs, model, companySourceId);
+        for (const [i, ranked] of jobs.entries()) {
+          db.prepare(
+            `INSERT INTO ranked_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          ).run(runId, i + 1, ranked.job.id, ranked.job.title, ranked.job.company,
+             ranked.job.url, ranked.overallScore,
+             ranked.scores.skill, ranked.scores.culture, ranked.scores.salary,
+             ranked.summary, ranked.job.source, JSON.stringify(ranked));
+        }
+      });
+
       ctx.provide('results.store', {
         async save(
           runId: string, resumeName: string, model: string,
           iteration: number, durationMs: number, jobs: RankedJob[],
           companySourceId?: string,
         ) {
-          db.prepare(
-            `INSERT INTO runs (id, created_at, resume_name, iteration, duration_ms, model, company_source_id)
-             VALUES (?,?,?,?,?,?,?)`,
-          ).run(runId, new Date().toISOString(), resumeName, iteration, durationMs, model, companySourceId ?? null);
-          for (const [i, ranked] of jobs.entries()) {
-            db.prepare(
-              `INSERT INTO ranked_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            ).run(runId, i + 1, ranked.job.id, ranked.job.title, ranked.job.company,
-               ranked.job.url, ranked.overallScore,
-               ranked.scores.skill, ranked.scores.culture, ranked.scores.salary,
-               ranked.summary, ranked.job.source, JSON.stringify(ranked));
-          }
+          saveTransaction(runId, resumeName, model, iteration, durationMs, jobs, companySourceId ?? null);
         },
         saveEnrichment(runId: string, data: {
           profile?: CandidateProfile;

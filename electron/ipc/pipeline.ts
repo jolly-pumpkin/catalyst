@@ -3,6 +3,7 @@ import type { PipelineRunner } from 'rhodium-pipeline-runner';
 import { IPC } from '../../src/shared/ipc-channels.js';
 import { jobSeekerSpec } from '../../src/spec.js';
 import { getBroker, getMainWindow, getModel } from '../main.js';
+import { setCurrentResumeName } from '../events.js';
 import type {
   RankedJob, CandidateProfile, NormalizedJob,
   JobAnalysis, ReflectOutput,
@@ -14,9 +15,7 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
   if (!broker) throw new Error('No user selected');
 
   // Set resume name for trace recording
-  if ((broker as any).__setCurrentResumeName) {
-    (broker as any).__setCurrentResumeName(resumeName);
-  }
+  setCurrentResumeName(resumeName);
 
   const runner = broker.resolve<PipelineRunner>('pipeline-runner');
   const model = getModel();
@@ -55,7 +54,7 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
     });
 
     // Push enrichment to renderer
-    if (win) {
+    if (win && !win.isDestroyed()) {
       win.webContents.send(IPC.PIPELINE_ENRICHMENT, {
         profile, normalizedJobs, analyses,
         reflectRationale: reflectOutput?.rationale,
@@ -82,7 +81,7 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
 
     return { runId, jobs, iteration: result.iteration, durationMs };
   } catch (err) {
-    if (win) {
+    if (win && !win.isDestroyed()) {
       win.webContents.send(IPC.PIPELINE_ERROR, { error: String(err) });
     }
     throw err;
@@ -99,6 +98,10 @@ export function registerPipelineHandlers(): void {
   });
 
   ipcMain.handle(IPC.OPEN_URL, async (_event, url: string) => {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new Error('Only http/https URLs are allowed');
+    }
     await shell.openExternal(url);
   });
 }

@@ -40,11 +40,8 @@ export function registerUserHandlers(config: CatalystConfig): void {
     // Create per-user broker (tears down old one if exists)
     const appBroker = await createAppBroker(config, config.ollamaModel);
 
-    // Wire broker events to renderer
-    const win = getMainWindow();
-    if (win) {
-      wireBrokerEvents(appBroker, win);
-    }
+    // Wire broker events to renderer (pass accessor so events survive window recreation)
+    wireBrokerEvents(appBroker, getMainWindow);
 
     // Start background scheduler
     startScheduler(appBroker, config);
