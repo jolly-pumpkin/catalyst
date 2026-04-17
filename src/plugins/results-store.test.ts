@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { createTestBroker } from 'rhodium-testing';
 import { resultsStorePlugin } from './results-store.js';
 import type { RankedJob, RunRecord } from '../types.js';

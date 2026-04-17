@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { createBroker } from 'rhodium-core';
 import { createPipelineRunnerPlugin } from 'rhodium-pipeline-runner';
 import { catalogDbPlugin } from './plugins/catalog-db.js';

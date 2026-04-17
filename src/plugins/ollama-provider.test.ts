@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, afterEach } from 'bun:test';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createTestBroker } from 'rhodium-testing';
 import { ollamaProviderPlugin } from './ollama-provider.js';
 
@@ -7,7 +7,7 @@ afterEach(() => { globalThis.fetch = originalFetch; });
 
 describe('ollama-provider plugin', () => {
   it('provides llm.generate capability', async () => {
-    const fetchMock = mock(async () =>
+    const fetchMock = vi.fn(async () =>
       new Response(JSON.stringify({ response: 'hello world' }))
     );
     globalThis.fetch = fetchMock as any;
@@ -27,7 +27,7 @@ describe('ollama-provider plugin', () => {
   });
 
   it('throws a clear error when Ollama is unreachable', async () => {
-    globalThis.fetch = mock(async () => { throw new Error('ECONNREFUSED'); }) as any;
+    globalThis.fetch = vi.fn(async () => { throw new Error('ECONNREFUSED'); }) as any;
 
     const { broker } = createTestBroker();
     broker.register(ollamaProviderPlugin({ model: 'gemma4' }));

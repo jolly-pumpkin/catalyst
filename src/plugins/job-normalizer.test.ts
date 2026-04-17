@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { createTestBroker } from 'rhodium-testing';
 import { jobNormalizerPlugin } from './job-normalizer.js';
 import type { NormalizedJob } from '../types.js';

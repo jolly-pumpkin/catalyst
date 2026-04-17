@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { createTestBroker } from 'rhodium-testing';
 import { skillMatcherPlugin } from './skill-matcher.js';
 import { cultureFitAnalyzerPlugin } from './culture-fit-analyzer.js';

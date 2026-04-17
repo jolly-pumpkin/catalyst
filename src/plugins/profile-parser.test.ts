@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { createTestBroker } from 'rhodium-testing';
 import { profileParserPlugin } from './profile-parser.js';
 import type { CandidateProfile, PipelineInput } from '../types.js';
