@@ -5,9 +5,18 @@ import type { AppState, AppAction } from './state.js';
 import { Toolbar } from './components/Toolbar.js';
 import { NavRail } from './components/NavRail.js';
 import { StatusBar } from './components/StatusBar.js';
+import { Companies } from './views/Companies.js';
+import { Kanban } from './views/Kanban.js';
+import { Pipeline } from './views/Pipeline.js';
+import { Results } from './views/Results.js';
+import { JobDetail } from './views/JobDetail.js';
+import { Profile } from './views/Profile.js';
+import { History } from './views/History.js';
+import { ResumeManager } from './views/ResumeManager.js';
+import { Settings } from './views/Settings.js';
 import styles from './styles/App.module.css';
 
-/* ---------- placeholder views (Tasks 19-24 will replace these) ---------- */
+/* ---------- placeholder for views not yet ported ---------- */
 function Placeholder({ name }: { name: string }) {
   return <div style={{ padding: 20, color: 'var(--text-secondary)' }}>
     {name} view — coming soon
@@ -83,16 +92,22 @@ function Shell() {
       <div className={styles.body}>
         <NavRail activeView={state.view} dispatch={dispatch} />
         <main className={styles.content}>
-          {state.view === 'companies' && <Placeholder name="Companies" />}
-          {state.view === 'pipeline' && <Placeholder name="Pipeline" />}
-          {state.view === 'results' && <Placeholder name="Results" />}
-          {state.view === 'job-detail' && <Placeholder name="Job Detail" />}
-          {state.view === 'history' && <Placeholder name="History" />}
-          {state.view === 'profile' && <Placeholder name="Profile" />}
-          {state.view === 'resume-manager' && <Placeholder name="Resume Manager" />}
-          {state.view === 'kanban' && <Placeholder name="Kanban" />}
+          {state.view === 'companies' && <Companies dispatch={dispatch} />}
+          {state.view === 'pipeline' && <Pipeline state={state} dispatch={dispatch} />}
+          {state.view === 'results' && <Results state={state} dispatch={dispatch} />}
+          {state.view === 'job-detail' && <JobDetail state={state} dispatch={dispatch} />}
+          {state.view === 'history' && <History dispatch={dispatch} />}
+          {state.view === 'profile' && <Profile state={state} />}
+          {state.view === 'resume-manager' && <ResumeManager state={state} dispatch={dispatch} />}
+          {state.view === 'kanban' && state.kanbanCompanyId && state.kanbanCompanyName && (
+            <Kanban
+              companyId={state.kanbanCompanyId}
+              companyName={state.kanbanCompanyName}
+              dispatch={dispatch}
+            />
+          )}
           {state.view === 'input' && <Placeholder name="Input" />}
-          {state.view === 'settings' && <Placeholder name="Settings" />}
+          {state.view === 'settings' && <Settings />}
           {state.view === 'user-selection' && <Placeholder name="User Selection" />}
         </main>
       </div>
