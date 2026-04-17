@@ -1,6 +1,7 @@
 import { join, extname, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { mkdirSync, readdirSync, existsSync } from 'node:fs';
+import { readFileText, readFileBuffer, writeFileText, fileExists } from './platform.js';
 
 export interface CatalystConfig {
   docsFolder: string;
@@ -12,9 +13,7 @@ export interface CatalystConfig {
 export async function loadConfig(): Promise<CatalystConfig> {
   const configDir = join(homedir(), '.catalyst');
   const configPath = join(configDir, 'config.json');
-  const configFile = Bun.file(configPath);
-
-  if (!(await configFile.exists())) {
+  if (!(await fileExists(configPath))) {
     mkdirSync(configDir, { recursive: true });
     const defaults: CatalystConfig = {
       docsFolder: join(configDir, 'docs'),
@@ -22,10 +21,10 @@ export async function loadConfig(): Promise<CatalystConfig> {
       ollamaUrl: 'http://localhost:11434',
       indexIntervalHours: 6,
     };
-    await Bun.write(configPath, JSON.stringify(defaults, null, 2));
+    await writeFileText(configPath, JSON.stringify(defaults, null, 2));
     return defaults;
   }
-  return JSON.parse(await configFile.text()) as CatalystConfig;
+  return JSON.parse(await readFileText(configPath)) as CatalystConfig;
 }
 
 export async function readResumeFile(filePath: string): Promise<string> {
@@ -34,25 +33,24 @@ export async function readResumeFile(filePath: string): Promise<string> {
     ? join(homedir(), cleaned.slice(1))
     : cleaned;
 
-  const file = Bun.file(resolved);
-  if (!(await file.exists())) throw new Error(`File not found: ${resolved}`);
+  if (!(await fileExists(resolved))) throw new Error(`File not found: ${resolved}`);
 
   const ext = extname(resolved).toLowerCase();
 
   if (ext === '.txt' || ext === '.md') {
-    return await file.text();
+    return await readFileText(resolved);
   }
 
   if (ext === '.pdf') {
     const pdfParse = (await import('pdf-parse')).default;
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await readFileBuffer(resolved);
     const result = await pdfParse(buffer);
     return result.text;
   }
 
   if (ext === '.docx') {
     const mammoth = await import('mammoth');
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = await readFileBuffer(resolved);
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   }
