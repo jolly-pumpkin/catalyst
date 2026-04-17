@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { openDatabase } from '../platform.js';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Plugin } from 'rhodium-core';
@@ -22,11 +22,11 @@ export function catalogDbPlugin(options: CatalogDbOptions = {}): Plugin {
     activate(ctx) {
       const dbPath = options.dbPath ?? getCatalystContext().dbPaths.catalog;
       if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
-      const db = new Database(dbPath);
+      const db = openDatabase(dbPath);
 
-      db.run('PRAGMA foreign_keys = ON');
+      db.exec('PRAGMA foreign_keys = ON');
 
-      db.run(`CREATE TABLE IF NOT EXISTS company_sources (
+      db.exec(`CREATE TABLE IF NOT EXISTS company_sources (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         url TEXT NOT NULL UNIQUE,
@@ -38,7 +38,7 @@ export function catalogDbPlugin(options: CatalogDbOptions = {}): Plugin {
         enabled INTEGER NOT NULL DEFAULT 1
       )`);
 
-      db.run(`CREATE TABLE IF NOT EXISTS indexed_jobs (
+      db.exec(`CREATE TABLE IF NOT EXISTS indexed_jobs (
         id TEXT NOT NULL,
         company_source_id TEXT NOT NULL,
         source TEXT NOT NULL,
@@ -56,9 +56,9 @@ export function catalogDbPlugin(options: CatalogDbOptions = {}): Plugin {
         FOREIGN KEY (company_source_id) REFERENCES company_sources(id) ON DELETE CASCADE
       )`);
 
-      db.run(`CREATE INDEX IF NOT EXISTS idx_indexed_jobs_active
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_indexed_jobs_active
               ON indexed_jobs(is_active)`);
-      db.run(`CREATE INDEX IF NOT EXISTS idx_indexed_jobs_company
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_indexed_jobs_company
               ON indexed_jobs(company_source_id)`);
 
       ctx.provide('catalog.db', db);
