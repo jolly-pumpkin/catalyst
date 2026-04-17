@@ -24,13 +24,12 @@ describe('index-fetcher', () => {
     await broker.activate();
 
     // Seed a company source row (FK requires it)
-    const db = broker.resolve<import('bun:sqlite').Database>('catalog.db');
-    db.run(
+    const db = broker.resolve<import('better-sqlite3').Database>('catalog.db');
+    db.prepare(
       `INSERT INTO company_sources (id, name, url, ats_type, slug, added_at, job_count, enabled)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ['test-company', 'TestCo', 'https://example.com', 'greenhouse', 'test',
-       new Date().toISOString(), 0, 1],
-    );
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run('test-company', 'TestCo', 'https://example.com', 'greenhouse', 'test',
+       new Date().toISOString(), 0, 1);
 
     const jobIndex = broker.resolve<{
       upsertJobs(companySourceId: string, jobs: RawJob[], atsType: string): Promise<number>;
