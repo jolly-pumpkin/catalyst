@@ -1,8 +1,15 @@
 {
   "name": "catalyst",
+  "main": ".vite/build/main.js",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "start": "electron-forge start",
+    "build": "electron-forge make",
+    "package": "electron-forge package",
+    "test": "vitest run"
+  },
   "dependencies": {
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
