@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { openDatabase } from '../platform.js';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Plugin } from 'rhodium-core';
@@ -25,9 +25,9 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
     activate(ctx) {
       const dbPath = options.dbPath ?? getCatalystContext().dbPaths.traces;
       if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
-      const db = new Database(dbPath);
+      const db = openDatabase(dbPath);
 
-      db.run(`CREATE TABLE IF NOT EXISTS trace_runs (
+      db.exec(`CREATE TABLE IF NOT EXISTS trace_runs (
         run_id       TEXT PRIMARY KEY,
         spec_name    TEXT NOT NULL,
         model        TEXT NOT NULL,
@@ -39,7 +39,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
         status       TEXT NOT NULL DEFAULT 'running'
       )`);
 
-      db.run(`CREATE TABLE IF NOT EXISTS trace_events (
+      db.exec(`CREATE TABLE IF NOT EXISTS trace_events (
         id        INTEGER PRIMARY KEY AUTOINCREMENT,
         run_id    TEXT NOT NULL,
         timestamp TEXT NOT NULL,
@@ -51,9 +51,9 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
         FOREIGN KEY (run_id) REFERENCES trace_runs(run_id)
       )`);
 
-      db.run(`CREATE INDEX IF NOT EXISTS idx_trace_events_run ON trace_events(run_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_trace_events_run ON trace_events(run_id)`);
 
-      db.run(`CREATE TABLE IF NOT EXISTS trace_llm_calls (
+      db.exec(`CREATE TABLE IF NOT EXISTS trace_llm_calls (
         id              INTEGER PRIMARY KEY AUTOINCREMENT,
         run_id          TEXT NOT NULL,
         call_id         TEXT NOT NULL UNIQUE,
@@ -71,7 +71,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
         FOREIGN KEY (run_id) REFERENCES trace_runs(run_id)
       )`);
 
-      db.run(`CREATE INDEX IF NOT EXISTS idx_trace_llm_run ON trace_llm_calls(run_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_trace_llm_run ON trace_llm_calls(run_id)`);
 
       // --- Prepared statements ---
       const insertRun = db.prepare(
@@ -140,7 +140,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
 
       ctx.provide('trace.query', {
         listRuns(): TraceRun[] {
-          return db.query(
+          return db.prepare(
             `SELECT run_id as runId, spec_name as specName, model, resume_name as resumeName,
                     started_at as startedAt, completed_at as completedAt,
                     duration_ms as durationMs, iteration, status
@@ -148,7 +148,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
           ).all() as TraceRun[];
         },
         getRun(runId: string): TraceRun | null {
-          return (db.query(
+          return (db.prepare(
             `SELECT run_id as runId, spec_name as specName, model, resume_name as resumeName,
                     started_at as startedAt, completed_at as completedAt,
                     duration_ms as durationMs, iteration, status
@@ -156,7 +156,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
           ).get(runId) as TraceRun) ?? null;
         },
         getEvents(runId: string): TraceEvent[] {
-          const rows = db.query(
+          const rows = db.prepare(
             `SELECT id, run_id as runId, timestamp, event, stage_id as stageId,
                     plugin_id as pluginId, duration_ms as durationMs, data_json
              FROM trace_events WHERE run_id = ? ORDER BY id`
@@ -168,7 +168,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
           })) as unknown as TraceEvent[];
         },
         getLLMCalls(runId: string): TraceLLMCall[] {
-          return db.query(
+          return db.prepare(
             `SELECT id, run_id as runId, call_id as callId, plugin_key as pluginKey,
                     model, prompt, response, temperature,
                     started_at as startedAt, completed_at as completedAt,
@@ -178,7 +178,7 @@ export function traceStorePlugin(options: TraceStoreOptions = {}): Plugin {
           ).all(runId) as TraceLLMCall[];
         },
         getLLMCall(callId: string): TraceLLMCall | null {
-          return (db.query(
+          return (db.prepare(
             `SELECT id, run_id as runId, call_id as callId, plugin_key as pluginKey,
                     model, prompt, response, temperature,
                     started_at as startedAt, completed_at as completedAt,
