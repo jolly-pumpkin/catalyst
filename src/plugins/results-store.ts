@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import { openDatabase } from '../platform.js';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { Plugin } from 'rhodium-core';
@@ -25,9 +25,9 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
     activate(ctx) {
       const dbPath = options.dbPath ?? getCatalystContext().dbPaths.results;
       if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
-      const db = new Database(dbPath);
+      const db = openDatabase(dbPath);
 
-      db.run(`CREATE TABLE IF NOT EXISTS runs (
+      db.exec(`CREATE TABLE IF NOT EXISTS runs (
         id TEXT PRIMARY KEY,
         created_at TEXT NOT NULL,
         resume_name TEXT NOT NULL,
@@ -37,20 +37,20 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
       )`);
 
       // Migrate: add enrichment columns if missing
-      const cols = db.query(`PRAGMA table_info(runs)`).all() as { name: string }[];
+      const cols = db.pragma('table_info(runs)') as { name: string }[];
       const colNames = new Set(cols.map((c) => c.name));
       if (!colNames.has('profile_json')) {
-        db.run(`ALTER TABLE runs ADD COLUMN profile_json TEXT`);
-        db.run(`ALTER TABLE runs ADD COLUMN normalized_jobs_json TEXT`);
-        db.run(`ALTER TABLE runs ADD COLUMN analyses_json TEXT`);
-        db.run(`ALTER TABLE runs ADD COLUMN reflect_rationale TEXT`);
-        db.run(`ALTER TABLE runs ADD COLUMN confidence REAL`);
+        db.exec(`ALTER TABLE runs ADD COLUMN profile_json TEXT`);
+        db.exec(`ALTER TABLE runs ADD COLUMN normalized_jobs_json TEXT`);
+        db.exec(`ALTER TABLE runs ADD COLUMN analyses_json TEXT`);
+        db.exec(`ALTER TABLE runs ADD COLUMN reflect_rationale TEXT`);
+        db.exec(`ALTER TABLE runs ADD COLUMN confidence REAL`);
       }
       if (!colNames.has('company_source_id')) {
-        db.run(`ALTER TABLE runs ADD COLUMN company_source_id TEXT`);
+        db.exec(`ALTER TABLE runs ADD COLUMN company_source_id TEXT`);
       }
 
-      db.run(`CREATE TABLE IF NOT EXISTS ranked_jobs (
+      db.exec(`CREATE TABLE IF NOT EXISTS ranked_jobs (
         run_id TEXT NOT NULL,
         rank INTEGER NOT NULL,
         job_id TEXT NOT NULL,
@@ -72,19 +72,17 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
           iteration: number, durationMs: number, jobs: RankedJob[],
           companySourceId?: string,
         ) {
-          db.run(
+          db.prepare(
             `INSERT INTO runs (id, created_at, resume_name, iteration, duration_ms, model, company_source_id)
              VALUES (?,?,?,?,?,?,?)`,
-            [runId, new Date().toISOString(), resumeName, iteration, durationMs, model, companySourceId ?? null],
-          );
+          ).run(runId, new Date().toISOString(), resumeName, iteration, durationMs, model, companySourceId ?? null);
           for (const [i, ranked] of jobs.entries()) {
-            db.run(
+            db.prepare(
               `INSERT INTO ranked_jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-              [runId, i + 1, ranked.job.id, ranked.job.title, ranked.job.company,
+            ).run(runId, i + 1, ranked.job.id, ranked.job.title, ranked.job.company,
                ranked.job.url, ranked.overallScore,
                ranked.scores.skill, ranked.scores.culture, ranked.scores.salary,
-               ranked.summary, ranked.job.source, JSON.stringify(ranked)],
-            );
+               ranked.summary, ranked.job.source, JSON.stringify(ranked));
           }
         },
         saveEnrichment(runId: string, data: {
@@ -94,37 +92,36 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
           reflectRationale?: string;
           confidence?: number;
         }) {
-          db.run(
+          db.prepare(
             `UPDATE runs SET profile_json = ?, normalized_jobs_json = ?, analyses_json = ?,
              reflect_rationale = ?, confidence = ? WHERE id = ?`,
-            [
+          ).run(
               data.profile ? JSON.stringify(data.profile) : null,
               data.normalizedJobs ? JSON.stringify(data.normalizedJobs) : null,
               data.analyses ? JSON.stringify(data.analyses) : null,
               data.reflectRationale ?? null,
               data.confidence ?? null,
               runId,
-            ],
           );
         },
       });
 
       ctx.provide('results.query', {
         async listRuns(): Promise<RunRecord[]> {
-          return db.query(
+          return db.prepare(
             `SELECT id, created_at as createdAt, resume_name as resumeName,
                     iteration, duration_ms as durationMs, model
              FROM runs ORDER BY created_at DESC`
           ).all() as RunRecord[];
         },
         async getJobs(runId: string): Promise<RankedJob[]> {
-          const rows = db.query(
+          const rows = db.prepare(
             `SELECT job_json FROM ranked_jobs WHERE run_id = ? ORDER BY rank`
           ).all(runId) as { job_json: string }[];
           return rows.map((r) => JSON.parse(r.job_json));
         },
         async getRunDetail(runId: string) {
-          const run = db.query(
+          const run = db.prepare(
             `SELECT id, created_at as createdAt, resume_name as resumeName,
                     iteration, duration_ms as durationMs, model,
                     profile_json, normalized_jobs_json, analyses_json,
@@ -135,7 +132,7 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
             analyses_json?: string; reflect_rationale?: string; confidence?: number;
           }) | null;
           if (!run) return null;
-          const jobRows = db.query(
+          const jobRows = db.prepare(
             `SELECT job_json FROM ranked_jobs WHERE run_id = ? ORDER BY rank`
           ).all(runId) as { job_json: string }[];
           return {
@@ -150,7 +147,7 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
           };
         },
         async getLatestRunId(): Promise<string | null> {
-          const row = db.query(
+          const row = db.prepare(
             `SELECT id FROM runs ORDER BY created_at DESC LIMIT 1`
           ).get() as { id: string } | null;
           return row?.id ?? null;
