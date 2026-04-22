@@ -5,6 +5,8 @@ import { registerCompanyHandlers } from './companies.js';
 import { registerKanbanHandlers } from './kanban.js';
 import { registerResultsHandlers } from './results.js';
 import { registerDocsHandlers } from './docs.js';
+import { registerProfileHandlers } from './profile.js';
+import { registerTraceHandlers } from './traces.js';
 
 /**
  * Register all IPC handlers. Called once during app startup.
@@ -16,4 +18,6 @@ export function registerAllIpc(config: CatalystConfig): void {
   registerKanbanHandlers();
   registerResultsHandlers();
   registerDocsHandlers();
+  registerProfileHandlers();
+  registerTraceHandlers();
 }

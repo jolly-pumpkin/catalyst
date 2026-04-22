@@ -1,10 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { StageState, ProviderState } from '../state.js';
 import styles from './StageRow.module.css';
 
 function fmtDuration(ms?: number): string {
   if (!ms) return '';
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
+/** Live elapsed counter — ticks every second while active. */
+function Elapsed({ active }: { active: boolean }) {
+  const startRef = useRef(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!active) return;
+    startRef.current = Date.now();
+    const id = setInterval(() => {
+      setElapsed(Date.now() - startRef.current);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  if (!active || elapsed < 1000) return null;
+  return <span className={styles.elapsed}>{(elapsed / 1000).toFixed(0)}s</span>;
 }
 
 const STATUS_ICON: Record<string, string> = {
@@ -31,11 +49,14 @@ function ProviderRow({ provider }: { provider: ProviderState }) {
           : STATUS_ICON[provider.status]}
       </span>
       <span className={styles.providerName}>{provider.id}</span>
+      {provider.status === 'running' && <Elapsed active />}
       {provider.durationMs != null && (
         <span className={styles.duration}>{fmtDuration(provider.durationMs)}</span>
       )}
       {provider.error && (
-        <span className={styles.error}>failed - skipped</span>
+        <span className={styles.error} title={provider.error}>
+          {provider.error.length > 60 ? provider.error.slice(0, 60) + '\u2026' : provider.error}
+        </span>
       )}
     </div>
   );
@@ -67,6 +88,7 @@ export function StageRow({ stage }: StageRowProps) {
             : STATUS_ICON[stage.status]}
         </span>
         <span className={`${styles.name} ${cls}`}>{stage.id}</span>
+        {stage.status === 'running' && <Elapsed active />}
         <span className={styles.duration}>{fmtDuration(stage.durationMs)}</span>
         {stage.providers.length > 0 && (
           <span className={styles.chevron}>{expanded ? '\u25B4' : '\u25BE'}</span>

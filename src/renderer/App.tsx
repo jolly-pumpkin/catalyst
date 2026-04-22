@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from 'react';
+import React, { useReducer, useEffect, useState } from 'react';
 import { ApiProvider, useApi } from './api.js';
 import { appReducer, initialState } from './state.js';
 import type { AppState, AppAction } from './state.js';
@@ -14,6 +14,8 @@ import { Profile } from './views/Profile.js';
 import { History } from './views/History.js';
 import { ResumeManager } from './views/ResumeManager.js';
 import { Settings } from './views/Settings.js';
+import { Traces } from './views/Traces.js';
+import { UserSetup } from './views/UserSetup.js';
 import styles from './styles/App.module.css';
 
 /* ---------- placeholder for views not yet ported ---------- */
@@ -26,7 +28,24 @@ function Placeholder({ name }: { name: string }) {
 /* ---------- inner shell (needs ApiProvider above it) ---------- */
 function Shell() {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [loading, setLoading] = useState(true);
   const api = useApi();
+
+  /* Auto-select persisted user on startup */
+  useEffect(() => {
+    let cancelled = false;
+    api.users.current().then(async (user: any) => {
+      if (cancelled) return;
+      if (user) {
+        await api.users.select(user.id);
+        dispatch({ type: 'user:selected', user });
+        dispatch({ type: 'setup:complete' });
+      }
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [api]);
 
   /* Wire IPC push events to dispatch */
   useEffect(() => {
@@ -59,6 +78,12 @@ function Shell() {
     );
 
     unsubs.push(
+      api.on.iteration((payload: any) => {
+        dispatch({ type: 'pipeline:iteration', iteration: payload.iteration });
+      }),
+    );
+
+    unsubs.push(
       api.on.enrichment((payload: any) => {
         dispatch({ type: 'pipeline:enrich', ...payload });
       }),
@@ -86,6 +111,14 @@ function Shell() {
   }, [api]);
 
   /* ---------- render ---------- */
+  if (loading) {
+    return null;
+  }
+
+  if (!state.setupComplete) {
+    return <UserSetup dispatch={dispatch} />;
+  }
+
   return (
     <div className={styles.layout}>
       <Toolbar state={state} dispatch={dispatch} />
@@ -97,7 +130,7 @@ function Shell() {
           {state.view === 'results' && <Results state={state} dispatch={dispatch} />}
           {state.view === 'job-detail' && <JobDetail state={state} dispatch={dispatch} />}
           {state.view === 'history' && <History dispatch={dispatch} />}
-          {state.view === 'profile' && <Profile state={state} />}
+          {state.view === 'profile' && <Profile state={state} dispatch={dispatch} />}
           {state.view === 'resume-manager' && <ResumeManager state={state} dispatch={dispatch} />}
           {state.view === 'kanban' && state.kanbanCompanyId && state.kanbanCompanyName && (
             <Kanban
@@ -106,9 +139,9 @@ function Shell() {
               dispatch={dispatch}
             />
           )}
+          {state.view === 'traces' && <Traces />}
           {state.view === 'input' && <Placeholder name="Input" />}
           {state.view === 'settings' && <Settings />}
-          {state.view === 'user-selection' && <Placeholder name="User Selection" />}
         </main>
       </div>
       <StatusBar state={state} />

@@ -6,6 +6,7 @@ const api = {
     list: () => ipcRenderer.invoke(IPC.USERS_LIST),
     create: (name: string) => ipcRenderer.invoke(IPC.USERS_CREATE, name),
     select: (id: string) => ipcRenderer.invoke(IPC.USERS_SELECT, id),
+    current: () => ipcRenderer.invoke(IPC.USERS_CURRENT),
   },
 
   pipeline: {
@@ -45,15 +46,30 @@ const api = {
     getJobs: (id: string) => ipcRenderer.invoke(IPC.RESULTS_GET_JOBS, id),
   },
 
+  profile: {
+    get: () => ipcRenderer.invoke(IPC.PROFILE_GET),
+    parse: (text: string, name: string) =>
+      ipcRenderer.invoke(IPC.PROFILE_PARSE, text, name),
+    save: (profile: unknown) => ipcRenderer.invoke(IPC.PROFILE_SAVE, profile),
+  },
+
   docs: {
     list: () => ipcRenderer.invoke(IPC.DOCS_LIST),
     read: (path: string) => ipcRenderer.invoke(IPC.DOCS_READ, path),
+    import: () => ipcRenderer.invoke(IPC.DOCS_IMPORT),
   },
 
   settings: {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET),
     set: (key: string, value: unknown) =>
       ipcRenderer.invoke(IPC.SETTINGS_SET, key, value),
+  },
+
+  traces: {
+    listRuns: () => ipcRenderer.invoke(IPC.TRACES_LIST_RUNS),
+    getEvents: (runId: string) => ipcRenderer.invoke(IPC.TRACES_GET_EVENTS, runId),
+    getLLMCalls: (runId: string) => ipcRenderer.invoke(IPC.TRACES_GET_LLM_CALLS, runId),
+    getLLMCall: (callId: string) => ipcRenderer.invoke(IPC.TRACES_GET_LLM_CALL, callId),
   },
 
   openUrl: (url: string) => ipcRenderer.invoke(IPC.OPEN_URL, url),
@@ -68,6 +84,11 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => cb(payload);
       ipcRenderer.on(IPC.PIPELINE_PROVIDER_UPDATE, listener);
       return () => { ipcRenderer.removeListener(IPC.PIPELINE_PROVIDER_UPDATE, listener); };
+    },
+    iteration: (cb: (payload: unknown) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => cb(payload);
+      ipcRenderer.on(IPC.PIPELINE_ITERATION, listener);
+      return () => { ipcRenderer.removeListener(IPC.PIPELINE_ITERATION, listener); };
     },
     enrichment: (cb: (payload: unknown) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => cb(payload);

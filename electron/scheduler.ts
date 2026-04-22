@@ -3,6 +3,7 @@ import type { Broker } from 'rhodium-core';
 import type { CatalystConfig } from '../src/input.js';
 import { IPC } from '../src/shared/ipc-channels.js';
 import { getMainWindow } from './main.js';
+import { log } from './logger.js';
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -51,7 +52,7 @@ export function startScheduler(broker: Broker, config: CatalystConfig): void {
         }
       }
     } catch (err) {
-      console.error('[scheduler] Index tick failed:', err);
+      log.error('scheduler', 'Index tick failed', { error: String(err) });
     }
   }, intervalMs);
 }

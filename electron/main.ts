@@ -1,9 +1,26 @@
 import 'dotenv/config';
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, dialog } from 'electron';
 import { join } from 'node:path';
 import { createBroker } from 'rhodium-core';
 import { createPipelineRunnerPlugin } from 'rhodium-pipeline-runner';
 import type { Broker } from 'rhodium-core';
+import { log, pruneOldLogs } from './logger.js';
+
+// --- Initialize logging before anything else ---
+pruneOldLogs();
+log.info('main', 'Catalyst starting');
+
+// --- Global error handlers ---
+process.on('uncaughtException', (err) => {
+  log.error('main', 'Uncaught exception', { error: err.message, stack: err.stack });
+  dialog.showErrorBox('Unexpected Error', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  log.error('main', 'Unhandled rejection', { error: message, stack });
+});
 
 import { ollamaProviderPlugin } from '../src/plugins/ollama-provider.js';
 import { resultsStorePlugin } from '../src/plugins/results-store.js';
@@ -15,6 +32,7 @@ import { jobIndexStorePlugin } from '../src/plugins/job-index-store.js';
 import { jobIndexerPlugin } from '../src/plugins/job-indexer.js';
 import { indexFetcherPlugin } from '../src/plugins/index-fetcher.js';
 import { remotiveFetcherPlugin } from '../src/plugins/remotive-fetcher.js';
+import { profileStorePlugin } from '../src/plugins/profile-store.js';
 import { profileParserPlugin } from '../src/plugins/profile-parser.js';
 import { jobNormalizerPlugin } from '../src/plugins/job-normalizer.js';
 import { skillMatcherPlugin } from '../src/plugins/skill-matcher.js';
@@ -79,6 +97,7 @@ export async function createUserBroker(): Promise<Broker> {
 export async function createAppBroker(config: CatalystConfig, model: string): Promise<Broker> {
   // Tear down previous broker if switching users
   if (appBroker) {
+    log.info('main', 'Deactivating previous app broker');
     stopScheduler();
     await appBroker.deactivate();
     appBroker = null;
@@ -110,6 +129,9 @@ export async function createAppBroker(config: CatalystConfig, model: string): Pr
   broker.register(indexFetcherPlugin());
   broker.register(remotiveFetcherPlugin());
 
+  // Profile storage (must be before profile-parser)
+  broker.register(profileStorePlugin());
+
   // Pipeline stages
   broker.register(profileParserPlugin());
   broker.register(jobNormalizerPlugin());
@@ -121,6 +143,7 @@ export async function createAppBroker(config: CatalystConfig, model: string): Pr
 
   await broker.activate();
   appBroker = broker;
+  log.info('main', 'App broker activated', { model });
 
   return broker;
 }

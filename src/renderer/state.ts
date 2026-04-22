@@ -29,11 +29,13 @@ export type ViewName =
   | 'companies'
   | 'kanban'
   | 'resume-manager'
-  | 'settings';
+  | 'settings'
+  | 'traces';
 
 export interface AppState {
   view: ViewName;
   currentUser?: UserRecord;
+  setupComplete: boolean;
   resumeName: string;
   resumeText?: string;
   model: string;
@@ -42,6 +44,9 @@ export interface AppState {
   stages: StageState[];
   results: RankedJob[];
   profile?: CandidateProfile;
+  profileMeta?: { sourceResume: string; updatedAt: string };
+  profileParsing?: boolean;
+  profileError?: string;
   normalizedJobs?: NormalizedJob[];
   analyses?: JobAnalysis[];
   reflectRationale?: string;
@@ -59,6 +64,8 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'user:selected'; user: UserRecord }
+  | { type: 'user:new-profile' }
+  | { type: 'setup:complete' }
   | { type: 'resume:selected'; resumeName: string; resumeText: string }
   | { type: 'pipeline:start'; resumeName: string; model: string }
   | { type: 'stage:start'; stageId: string; capability: string }
@@ -68,6 +75,7 @@ export type AppAction =
   | { type: 'provider:start'; stageId: string; providerId: string }
   | { type: 'provider:done'; stageId: string; providerId: string; durationMs: number }
   | { type: 'provider:fail'; stageId: string; providerId: string; error: string }
+  | { type: 'pipeline:iteration'; iteration: number }
   | { type: 'pipeline:enrich'; profile?: CandidateProfile; normalizedJobs?: NormalizedJob[]; analyses?: JobAnalysis[]; reflectRationale?: string; confidence?: number }
   | { type: 'pipeline:done'; results: RankedJob[]; iteration: number; durationMs: number }
   | { type: 'pipeline:fail'; error: string }
@@ -75,10 +83,14 @@ export type AppAction =
   | { type: 'view:change'; view: ViewName }
   | { type: 'kanban:open'; companyId: string; companyName: string }
   | { type: 'company-pipeline:start'; companyId: string; companyName: string }
-  | { type: 'company-pipeline:clear' };
+  | { type: 'company-pipeline:clear' }
+  | { type: 'profile:loaded'; profile: CandidateProfile; sourceResume: string; updatedAt: string }
+  | { type: 'profile:parsing' }
+  | { type: 'profile:parse-error'; error: string };
 
 export const initialState: AppState = {
-  view: 'companies',
+  view: 'user-selection',
+  setupComplete: false,
   resumeName: '',
   model: '',
   iteration: 1,
@@ -93,6 +105,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'user:selected':
       return { ...state, currentUser: action.user };
+
+    case 'user:new-profile':
+      return { ...initialState, setupComplete: false };
+
+    case 'setup:complete':
+      return { ...state, setupComplete: true, view: 'companies' };
 
     case 'resume:selected':
       return { ...state, view: 'pipeline', resumeName: action.resumeName, resumeText: action.resumeText, stages: [], done: false, error: undefined };
@@ -154,6 +172,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         )} : s
       )};
 
+    case 'pipeline:iteration':
+      return { ...state, iteration: action.iteration };
+
     case 'pipeline:enrich':
       return {
         ...state,
@@ -184,6 +205,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'company-pipeline:clear':
       return { ...state, pipelineCompanyId: undefined, pipelineCompanyName: undefined };
+
+    case 'profile:loaded':
+      return { ...state, profile: action.profile, profileMeta: { sourceResume: action.sourceResume, updatedAt: action.updatedAt }, profileParsing: false, profileError: undefined };
+
+    case 'profile:parsing':
+      return { ...state, profileParsing: true, profileError: undefined };
+
+    case 'profile:parse-error':
+      return { ...state, profileParsing: false, profileError: action.error };
 
     default:
       return state;

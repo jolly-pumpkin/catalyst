@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { view: 'history',        label: 'History',   icon: '\u{1F4C5}' },
   { view: 'profile',        label: 'Profile',   icon: '\u{1F464}' },
   { view: 'resume-manager', label: 'Resume',    icon: '\u{1F4C4}' },
+  { view: 'traces',         label: 'Traces',   icon: '\u{1F50D}' },
 ];
 
 interface NavRailProps {

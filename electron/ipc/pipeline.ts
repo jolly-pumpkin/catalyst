@@ -4,6 +4,7 @@ import { IPC } from '../../src/shared/ipc-channels.js';
 import { jobSeekerSpec } from '../../src/spec.js';
 import { getBroker, getMainWindow, getModel } from '../main.js';
 import { setCurrentResumeName } from '../events.js';
+import { log } from '../logger.js';
 import type {
   RankedJob, CandidateProfile, NormalizedJob,
   JobAnalysis, ReflectOutput,
@@ -22,6 +23,8 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
   const runId = crypto.randomUUID();
   const start = Date.now();
   const win = getMainWindow();
+
+  log.info('pipeline', 'Pipeline started', { resumeName, model, runId, companySourceId });
 
   try {
     const result = await runner.run(jobSeekerSpec, { resumeText, resumeName });
@@ -79,8 +82,11 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
       }
     }
 
+    log.info('pipeline', 'Pipeline complete', { runId, jobCount: jobs.length, iteration: result.iteration, durationMs });
+
     return { runId, jobs, iteration: result.iteration, durationMs };
   } catch (err) {
+    log.error('pipeline', 'Pipeline failed', { runId, error: String(err) });
     if (win && !win.isDestroyed()) {
       win.webContents.send(IPC.PIPELINE_ERROR, { error: String(err) });
     }
