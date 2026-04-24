@@ -7,6 +7,7 @@ import { registerResultsHandlers } from './results.js';
 import { registerDocsHandlers } from './docs.js';
 import { registerProfileHandlers } from './profile.js';
 import { registerTraceHandlers } from './traces.js';
+import { registerDashboardHandlers } from './dashboard.js';
 
 /**
  * Register all IPC handlers. Called once during app startup.
@@ -20,4 +21,5 @@ export function registerAllIpc(config: CatalystConfig): void {
   registerDocsHandlers();
   registerProfileHandlers();
   registerTraceHandlers();
+  registerDashboardHandlers();
 }

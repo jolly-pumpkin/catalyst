@@ -44,6 +44,13 @@ const api = {
     listRuns: () => ipcRenderer.invoke(IPC.RESULTS_LIST_RUNS),
     getRun: (id: string) => ipcRenderer.invoke(IPC.RESULTS_GET_RUN, id),
     getJobs: (id: string) => ipcRenderer.invoke(IPC.RESULTS_GET_JOBS, id),
+    getAllJobs: (companyIds?: string[]) =>
+      ipcRenderer.invoke(IPC.RESULTS_GET_ALL_JOBS, companyIds),
+  },
+
+  dashboard: {
+    feedbackSummary: (companyIds?: string[]) =>
+      ipcRenderer.invoke(IPC.KANBAN_FEEDBACK_SUMMARY, companyIds),
   },
 
   profile: {
@@ -63,6 +70,10 @@ const api = {
     get: () => ipcRenderer.invoke(IPC.SETTINGS_GET),
     set: (key: string, value: unknown) =>
       ipcRenderer.invoke(IPC.SETTINGS_SET, key, value),
+  },
+
+  ollama: {
+    models: () => ipcRenderer.invoke(IPC.OLLAMA_MODELS),
   },
 
   traces: {
@@ -109,6 +120,11 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => cb(payload);
       ipcRenderer.on(IPC.INDEX_NEW_JOBS, listener);
       return () => { ipcRenderer.removeListener(IPC.INDEX_NEW_JOBS, listener); };
+    },
+    jobProgress: (cb: (payload: unknown) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => cb(payload);
+      ipcRenderer.on(IPC.PIPELINE_JOB_PROGRESS, listener);
+      return () => { ipcRenderer.removeListener(IPC.PIPELINE_JOB_PROGRESS, listener); };
     },
   },
 };

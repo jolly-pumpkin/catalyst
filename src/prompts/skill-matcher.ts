@@ -1,16 +1,22 @@
 import type { CandidateProfile, NormalizedJob } from '../types.js';
 
-export function skillMatcherPrompt(jobs: NormalizedJob[], profile: CandidateProfile): string {
-  return `You are a technical skill matcher. Score each job's skill fit for the candidate.
+export function skillMatcherPrompt(job: NormalizedJob, profile: CandidateProfile): string {
+  const candidateSkills = Object.values(profile.skills).flat();
+  return `You are a technical skill matcher. Score this job's skill fit for the candidate.
 
-Candidate skills: ${profile.skills.join(', ')}
+Candidate skills: ${candidateSkills.join(', ')}
 Candidate experience: ${profile.yearsExperience} years as ${profile.titles[0] ?? 'professional'}
 
-For each job return a score 0-100 for technical skill overlap.
+Return a score 0-100 for technical skill overlap.
+Also return:
+- matchedSkills: candidate skills that match this job's requirements
+- missingSkills: skills the job requires that the candidate lacks
+- matchPercent: percentage of required skills the candidate has (0-100)
+- gapSeverity: "minor" if matchPercent >= 80, "moderate" if >= 60, "major" if < 60
 
-Return ONLY a JSON array:
-[{ "jobId": "id", "variant": "skill", "score": number, "reasoning": "1 sentence", "signals": ["key signal"] }]
+Return ONLY a JSON object — no markdown, no explanation:
+{ "jobId": "${job.id}", "variant": "skill", "score": number, "reasoning": "1 sentence", "signals": ["key signal"], "matchedSkills": ["skill"], "missingSkills": ["skill"], "matchPercent": number, "gapSeverity": "minor"|"moderate"|"major" }
 
-JOBS:
-${JSON.stringify(jobs.map((j) => ({ id: j.id, title: j.title, skills: j.skills })), null, 2)}`;
+JOB:
+${JSON.stringify({ id: job.id, title: job.title, skills: job.skills }, null, 2)}`;
 }

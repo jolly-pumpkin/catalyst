@@ -5,7 +5,7 @@ export interface PipelineInput {
 
 export interface CandidateProfile {
   name: string;
-  skills: string[];
+  skills: Record<string, string[]>;
   yearsExperience: number;
   titles: string[];
   preferredLocations: string[];
@@ -42,6 +42,11 @@ export interface JobAnalysis {
   score: number;
   reasoning: string;
   signals: string[];
+  // Skill gap data (only present for variant === 'skill')
+  matchedSkills?: string[];
+  missingSkills?: string[];
+  matchPercent?: number;
+  gapSeverity?: 'minor' | 'moderate' | 'major';
 }
 
 export interface RankedJob {
