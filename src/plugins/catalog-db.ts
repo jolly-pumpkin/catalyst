@@ -61,6 +61,21 @@ export function catalogDbPlugin(options: CatalogDbOptions = {}): Plugin {
       db.exec(`CREATE INDEX IF NOT EXISTS idx_indexed_jobs_company
               ON indexed_jobs(company_source_id)`);
 
+      // Migrations -- add columns if missing
+      const hasFilters = db.prepare(
+        "SELECT COUNT(*) as c FROM pragma_table_info('company_sources') WHERE name = 'filters'"
+      ).get() as { c: number };
+      if (!hasFilters.c) {
+        db.exec("ALTER TABLE company_sources ADD COLUMN filters TEXT NOT NULL DEFAULT '{}'");
+      }
+
+      const hasDept = db.prepare(
+        "SELECT COUNT(*) as c FROM pragma_table_info('indexed_jobs') WHERE name = 'department'"
+      ).get() as { c: number };
+      if (!hasDept.c) {
+        db.exec("ALTER TABLE indexed_jobs ADD COLUMN department TEXT");
+      }
+
       ctx.provide('catalog.db', db);
     },
   };
