@@ -23,8 +23,8 @@ export function jobIndexStorePlugin(): Plugin {
       const upsertStmt = db.prepare(`
         INSERT INTO indexed_jobs (id, company_source_id, source, title, company, location,
                                   description, url, posted_at, first_seen_at, last_seen_at,
-                                  is_active, ats_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                                  is_active, ats_type, department)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
         ON CONFLICT(id, company_source_id) DO UPDATE SET
           title = excluded.title,
           company = excluded.company,
@@ -33,7 +33,8 @@ export function jobIndexStorePlugin(): Plugin {
           url = excluded.url,
           posted_at = excluded.posted_at,
           last_seen_at = excluded.last_seen_at,
-          is_active = 1
+          is_active = 1,
+          department = excluded.department
       `);
 
       ctx.provide('job.index', {
@@ -44,7 +45,7 @@ export function jobIndexStorePlugin(): Plugin {
               upsertStmt.run(
                 job.id, companySourceId, job.source, job.title, job.company,
                 job.location, job.description, job.url, job.postedAt,
-                now, now, atsType,
+                now, now, atsType, job.department ?? null,
               );
             }
           });
@@ -70,12 +71,14 @@ export function jobIndexStorePlugin(): Plugin {
         },
 
         async query(filter?: {
-          skills?: string[];
-          titles?: string[];
+          titleKeywords?: string[];
+          locations?: string[];
+          departments?: string[];
+          postedWithinDays?: number;
           companyIds?: string[];
         }): Promise<IndexedJob[]> {
           let sql = 'SELECT * FROM indexed_jobs WHERE is_active = 1';
-          const params: string[] = [];
+          const params: (string | number)[] = [];
 
           if (filter?.companyIds?.length) {
             const placeholders = filter.companyIds.map(() => '?').join(',');
@@ -83,22 +86,44 @@ export function jobIndexStorePlugin(): Plugin {
             params.push(...filter.companyIds);
           }
 
-          if (filter?.skills?.length || filter?.titles?.length) {
-            const keywords = [
-              ...(filter.skills ?? []),
-              ...(filter.titles ?? []),
-            ];
-            const conditions = keywords.map(() =>
-              "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(description) LIKE ? ESCAPE '\\')",
+          if (filter?.titleKeywords?.length) {
+            const conditions = filter.titleKeywords.map(() =>
+              "LOWER(title) LIKE ? ESCAPE '\\'",
             );
             sql += ` AND (${conditions.join(' OR ')})`;
-            for (const kw of keywords) {
-              const like = `%${escapeLike(kw.toLowerCase())}%`;
-              params.push(like, like);
+            for (const kw of filter.titleKeywords) {
+              params.push(`%${escapeLike(kw.toLowerCase())}%`);
             }
           }
 
-          sql += ' ORDER BY posted_at DESC LIMIT 200';
+          if (filter?.locations?.length) {
+            const conditions = filter.locations.map(() =>
+              "LOWER(location) LIKE ? ESCAPE '\\'",
+            );
+            sql += ` AND (${conditions.join(' OR ')})`;
+            for (const loc of filter.locations) {
+              params.push(`%${escapeLike(loc.toLowerCase())}%`);
+            }
+          }
+
+          if (filter?.departments?.length) {
+            const conditions = filter.departments.map(() =>
+              "LOWER(department) LIKE ? ESCAPE '\\'",
+            );
+            sql += ` AND (${conditions.join(' OR ')})`;
+            for (const dept of filter.departments) {
+              params.push(`%${escapeLike(dept.toLowerCase())}%`);
+            }
+          }
+
+          if (filter?.postedWithinDays) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - filter.postedWithinDays);
+            sql += ' AND posted_at >= ?';
+            params.push(cutoff.toISOString());
+          }
+
+          sql += ' ORDER BY posted_at DESC LIMIT 500';
 
           const rows = db.prepare(sql).all(...params) as any[];
           return rows.map(rowToIndexedJob);
@@ -134,5 +159,6 @@ function rowToIndexedJob(row: any): IndexedJob {
     lastSeenAt: row.last_seen_at,
     isActive: !!row.is_active,
     atsType: row.ats_type as ATSType,
+    department: row.department ?? undefined,
   };
 }
