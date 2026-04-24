@@ -1,5 +1,6 @@
 import type { Plugin } from 'rhodium-core';
 import type { ATSType, CompanySource, RawJob } from '../types.js';
+import { withConcurrency } from '../concurrency.js';
 
 export interface JobIndexerOptions {
   intervalHours?: number;
@@ -23,6 +24,7 @@ async function fetchGreenhouseJobs(slug: string, companyName: string): Promise<R
     location: j.location?.name ?? 'Unknown',
     description: stripHtml(j.content ?? ''),
     url: j.absolute_url,
+    department: j.departments?.[0]?.name,
     postedAt: j.updated_at ?? j.first_published ?? new Date().toISOString(),
   }));
 }
@@ -40,6 +42,7 @@ async function fetchLeverJobs(slug: string, companyName: string): Promise<RawJob
     location: j.categories?.location ?? 'Unknown',
     description: j.descriptionPlain ?? stripHtml(j.description ?? ''),
     url: j.hostedUrl,
+    department: j.categories?.department ?? j.categories?.team,
     postedAt: j.createdAt ? new Date(j.createdAt).toISOString() : new Date().toISOString(),
   }));
 }
@@ -57,6 +60,7 @@ async function fetchAshbyJobs(slug: string, companyName: string): Promise<RawJob
     location: j.location ?? 'Unknown',
     description: j.descriptionPlain ?? stripHtml(j.descriptionHtml ?? ''),
     url: j.jobUrl,
+    department: j.department,
     postedAt: j.publishedAt ?? new Date().toISOString(),
   }));
 }
@@ -74,6 +78,7 @@ async function fetchWorkableJobs(slug: string, companyName: string): Promise<Raw
     location: [j.city, j.country].filter(Boolean).join(', ') || 'Unknown',
     description: j.description ?? '',
     url: j.url ?? `https://apply.workable.com/${slug}/j/${j.shortcode}/`,
+    department: j.department,
     postedAt: j.created_at ?? new Date().toISOString(),
   }));
 }
@@ -101,21 +106,6 @@ async function fetchWithTimeout(url: string, timeout: number): Promise<Response>
   }
 }
 
-/** Simple concurrency limiter. */
-async function withConcurrency<T>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  let i = 0;
-  async function worker() {
-    while (i < items.length) {
-      const item = items[i++]!;
-      await fn(item);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-}
 
 export function jobIndexerPlugin(options: JobIndexerOptions = {}): Plugin {
   let intervalHandle: ReturnType<typeof setInterval> | null = null;
@@ -175,13 +165,13 @@ export function jobIndexerPlugin(options: JobIndexerOptions = {}): Plugin {
         let totalJobs = 0;
         const errors: Array<{ company: string; error: string }> = [];
 
-        await withConcurrency(enabled, 3, async (company) => {
-          try {
-            const count = await indexCompany(company);
-            totalJobs += count;
-          } catch (err) {
-            errors.push({ company: company.name, error: String(err) });
-          }
+        await withConcurrency(enabled, async (company) => {
+          const count = await indexCompany(company);
+          totalJobs += count;
+          return count;
+        }, {
+          limit: 3,
+          onError: (err, i) => errors.push({ company: enabled[i]!.name, error: String(err) }),
         });
 
         ctx.emit('indexer:complete', { totalJobs, errors });
