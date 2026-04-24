@@ -110,14 +110,15 @@ describe('index-fetcher', () => {
 
     const { setPipelineCompanyId } = await import('../context.js');
     setPipelineCompanyId('co-1');
+    try {
+      const fetch = broker.resolve<(input: any) => Promise<RawJob[]>>('jobs.fetch');
+      const jobs = await fetch({ 'parse-profile': mockProfile });
 
-    const fetch = broker.resolve<(input: any) => Promise<RawJob[]>>('jobs.fetch');
-    const jobs = await fetch({ 'parse-profile': mockProfile });
-
-    // No company filters -- falls back to profile titles
-    expect(jobs.length).toBeGreaterThanOrEqual(1);
-
-    setPipelineCompanyId(undefined);
+      // No company filters -- falls back to profile titles
+      expect(jobs.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      setPipelineCompanyId(undefined);
+    }
   });
 
   it('filters jobs by company titleKeywords filter', async () => {
@@ -155,14 +156,15 @@ describe('index-fetcher', () => {
 
     const { setPipelineCompanyId } = await import('../context.js');
     setPipelineCompanyId('co-2');
+    try {
+      const fetch = broker.resolve<(input: any) => Promise<RawJob[]>>('jobs.fetch');
+      const jobs = await fetch({ 'parse-profile': mockProfile });
 
-    const fetch = broker.resolve<(input: any) => Promise<RawJob[]>>('jobs.fetch');
-    const jobs = await fetch({ 'parse-profile': mockProfile });
-
-    expect(jobs.length).toBe(1);
-    expect(jobs[0].title).toBe('Software Engineer');
-
-    setPipelineCompanyId(undefined);
+      expect(jobs.length).toBe(1);
+      expect(jobs[0].title).toBe('Software Engineer');
+    } finally {
+      setPipelineCompanyId(undefined);
+    }
   });
 });
 
