@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useApi } from '../api.js';
 import type { AppState, AppAction } from '../state.js';
-import type { RankedJob, JobAnalysis, JobKanbanColumn, CompanySource } from '../../types.js';
+import type { RankedJob, JobAnalysis, JobKanbanColumn, CompanySource, FeedbackTag } from '../../types.js';
+import { FEEDBACK_TAGS } from '../../types.js';
 import { QuickStats } from '../components/QuickStats.js';
 import { JobCard } from '../components/JobCard.js';
 import { NearMissGroup } from '../components/NearMissGroup.js';
@@ -34,6 +35,9 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const [companies, setCompanies] = useState<CompanySource[]>([]);
   const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [feedbackModal, setFeedbackModal] = useState<{ jobId: string; column: JobKanbanColumn } | null>(null);
+  const [feedbackTags, setFeedbackTags] = useState<FeedbackTag[]>([]);
+  const [feedbackNotes, setFeedbackNotes] = useState('');
 
   const companyFilter = state.dashboardFilter.companyIds;
   const detailJobId = state.detailPanelJobId;
@@ -64,6 +68,13 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const detailEntry = detailJobId ? entries.find((e) => e.ranked.job.id === detailJobId) : null;
 
   const handleAction = useCallback(async (jobId: string, column: JobKanbanColumn) => {
+    if (column === 'rejected' || column === 'not-applying') {
+      setFeedbackModal({ jobId, column });
+      setFeedbackTags([]);
+      setFeedbackNotes('');
+      return;
+    }
+
     const companyId = state.pipelineCompanyId ?? companies[0]?.id;
     if (!companyId) return;
 
@@ -74,6 +85,20 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
       // ignore move errors
     }
   }, [api, companies, state.pipelineCompanyId, loadData]);
+
+  const handleFeedbackSubmit = useCallback(async () => {
+    if (!feedbackModal) return;
+    const companyId = state.pipelineCompanyId ?? companies[0]?.id;
+    if (!companyId) return;
+    try {
+      await api.kanban.move(feedbackModal.jobId, companyId, feedbackModal.column, {
+        tags: feedbackTags,
+        notes: feedbackNotes || undefined,
+      });
+      setFeedbackModal(null);
+      await loadData();
+    } catch { /* ignore */ }
+  }, [api, feedbackModal, feedbackTags, feedbackNotes, companies, state.pipelineCompanyId, loadData]);
 
   const handleOpenDetail = useCallback((jobId: string) => {
     dispatch({ type: 'dashboard:open-detail', jobId });
@@ -207,6 +232,40 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
           />
         )}
       </div>
+
+      {feedbackModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalTitle}>
+              {feedbackModal.column === 'rejected' ? 'Reject' : 'Not Applying'} — Why?
+            </div>
+            <div className={styles.tagGrid}>
+              {FEEDBACK_TAGS.map((t) => (
+                <button
+                  key={t.tag}
+                  className={`${styles.feedbackTag} ${feedbackTags.includes(t.tag) ? styles.feedbackTagActive : ''}`}
+                  onClick={() => setFeedbackTags((prev) =>
+                    prev.includes(t.tag) ? prev.filter((x) => x !== t.tag) : [...prev, t.tag]
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              className={styles.feedbackNotes}
+              placeholder="Optional notes..."
+              value={feedbackNotes}
+              onChange={(e) => setFeedbackNotes(e.target.value)}
+              rows={3}
+            />
+            <div className={styles.modalActions}>
+              <button className={styles.modalCancel} onClick={() => setFeedbackModal(null)}>Cancel</button>
+              <button className={styles.modalConfirm} onClick={handleFeedbackSubmit}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
