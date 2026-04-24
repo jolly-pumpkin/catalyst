@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { Plugin } from 'rhodium-core';
-import type { ATSType, CompanySource } from '../types.js';
+import type { ATSType, CompanyFilters, CompanySource } from '../types.js';
 
 export function companyStorePlugin(): Plugin {
   return {
@@ -78,12 +78,24 @@ export function companyStorePlugin(): Plugin {
             'UPDATE company_sources SET last_indexed_at = ?, job_count = ? WHERE id = ?',
           ).run(new Date().toISOString(), jobCount, id);
         },
+
+        async setFilters(id: string, filters: CompanyFilters): Promise<void> {
+          db.prepare(
+            'UPDATE company_sources SET filters = ? WHERE id = ?',
+          ).run(JSON.stringify(filters), id);
+        },
       });
     },
   };
 }
 
 function rowToCompanySource(row: any): CompanySource {
+  let filters: CompanyFilters | undefined;
+  try {
+    const parsed = JSON.parse(row.filters || '{}');
+    if (Object.keys(parsed).length > 0) filters = parsed;
+  } catch { /* ignore bad JSON */ }
+
   return {
     id: row.id,
     name: row.name,
@@ -94,5 +106,6 @@ function rowToCompanySource(row: any): CompanySource {
     lastIndexedAt: row.last_indexed_at ?? undefined,
     jobCount: row.job_count,
     enabled: !!row.enabled,
+    filters,
   };
 }
