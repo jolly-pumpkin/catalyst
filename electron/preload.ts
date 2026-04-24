@@ -22,6 +22,8 @@ const api = {
     remove: (id: string) => ipcRenderer.invoke(IPC.COMPANIES_REMOVE, id),
     toggle: (id: string, enabled: boolean) =>
       ipcRenderer.invoke(IPC.COMPANIES_TOGGLE, id, enabled),
+    setFilters: (id: string, filters: unknown) =>
+      ipcRenderer.invoke(IPC.COMPANIES_SET_FILTERS, id, filters),
   },
 
   index: {
