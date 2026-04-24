@@ -34,6 +34,15 @@ export function registerCompanyHandlers(): void {
     return store.setEnabled(id, enabled);
   });
 
+  ipcMain.handle(IPC.COMPANIES_SET_FILTERS, async (_event, id: string, filters: unknown) => {
+    const broker = getBroker();
+    if (!broker) throw new Error('No user selected');
+    const store = broker.resolve<{
+      setFilters(id: string, filters: unknown): Promise<void>;
+    }>('company.store');
+    return store.setFilters(id, filters as any);
+  });
+
   ipcMain.handle(IPC.INDEX_RUN, async () => {
     const broker = getBroker();
     if (!broker) throw new Error('No user selected');

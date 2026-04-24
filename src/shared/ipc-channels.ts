@@ -10,6 +10,7 @@ export const IPC = {
   COMPANIES_ADD: 'companies:add',
   COMPANIES_REMOVE: 'companies:remove',
   COMPANIES_TOGGLE: 'companies:toggle',
+  COMPANIES_SET_FILTERS: 'companies:set-filters',
   INDEX_RUN: 'index:run',
   INDEX_COMPANY: 'index:company',
   KANBAN_COLUMNS: 'kanban:columns',
