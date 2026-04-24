@@ -22,6 +22,7 @@ export interface RawJob {
   description: string;
   url: string;
   postedAt: string;
+  department?: string;
 }
 
 export interface NormalizedJob {
@@ -90,6 +91,14 @@ export interface CompanySource {
   lastIndexedAt?: string;
   jobCount: number;
   enabled: boolean;
+  filters?: CompanyFilters;
+}
+
+export interface CompanyFilters {
+  titleKeywords?: string[];
+  locations?: string[];
+  departments?: string[];
+  postedWithinDays?: number;
 }
 
 export interface IndexedJob extends RawJob {
