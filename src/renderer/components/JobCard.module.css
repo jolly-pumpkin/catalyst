@@ -1,0 +1,166 @@
+.card {
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  margin-bottom: 0.4rem;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.company {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.chevron {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.scoreRow {
+  margin-bottom: 0.3rem;
+}
+
+.summaryRow {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 0.3rem;
+}
+
+.metaRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.sourceBadge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.expanded {
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.miniScores {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
+.signalTag {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--accent);
+}
+
+.redFlags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
+.redFlagTag {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--danger);
+}
+
+.gapRow {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.matchPercent {
+  color: var(--warning);
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.missingSkills {
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  border-color: var(--accent);
+}
+
+.applyBtn {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.rejectBtn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.detailBtn {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.detailBtn:hover {
+  background: rgba(78, 168, 222, 0.1);
+}
