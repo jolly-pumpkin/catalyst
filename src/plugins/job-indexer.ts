@@ -1,5 +1,5 @@
 import type { Plugin } from 'rhodium-core';
-import type { ATSType, CompanySource, RawJob } from '../types.js';
+import type { ATSType, CompanyFilters, CompanySource, RawJob } from '../types.js';
 import { withConcurrency } from '../concurrency.js';
 
 export interface JobIndexerOptions {
@@ -90,6 +90,37 @@ const ATS_FETCHERS: Record<ATSType, (slug: string, companyName: string) => Promi
   workable: fetchWorkableJobs,
 };
 
+function applyFilters(jobs: RawJob[], filters: CompanyFilters): RawJob[] {
+  return jobs.filter((job) => {
+    if (filters.titleKeywords?.length) {
+      const titleLower = job.title.toLowerCase();
+      if (!filters.titleKeywords.some((kw) => titleLower.includes(kw.toLowerCase()))) {
+        return false;
+      }
+    }
+    if (filters.locations?.length) {
+      const locLower = job.location.toLowerCase();
+      if (!filters.locations.some((loc) => locLower.includes(loc.toLowerCase()))) {
+        return false;
+      }
+    }
+    if (filters.departments?.length && job.department) {
+      const deptLower = job.department.toLowerCase();
+      if (!filters.departments.some((d) => deptLower.includes(d.toLowerCase()))) {
+        return false;
+      }
+    }
+    if (filters.postedWithinDays) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - filters.postedWithinDays);
+      if (new Date(job.postedAt) < cutoff) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 // --- Helpers ---
 
 function stripHtml(html: string): string {
@@ -140,7 +171,14 @@ export function jobIndexerPlugin(options: JobIndexerOptions = {}): Plugin {
         const fetcher = ATS_FETCHERS[company.atsType];
         if (!fetcher) throw new Error(`Unknown ATS type: ${company.atsType}`);
 
-        const jobs = await fetcher(company.slug, company.name);
+        let jobs = await fetcher(company.slug, company.name);
+
+        // Apply user-configured filters
+        const filters = company.filters;
+        if (filters && Object.keys(filters).length > 0) {
+          jobs = applyFilters(jobs, filters);
+        }
+
         await jobIndex.upsertJobs(company.id, jobs, company.atsType);
         await jobIndex.markInactive(company.id, jobs.map((j) => j.id));
         await companyStore.updateIndexed(company.id, jobs.length);
