@@ -15,6 +15,7 @@ import { History } from './views/History.js';
 import { ResumeManager } from './views/ResumeManager.js';
 import { Settings } from './views/Settings.js';
 import { Traces } from './views/Traces.js';
+import { Dashboard } from './views/Dashboard.js';
 import { UserSetup } from './views/UserSetup.js';
 import styles from './styles/App.module.css';
 
@@ -107,6 +108,12 @@ function Shell() {
       }),
     );
 
+    unsubs.push(
+      api.on.jobProgress((payload: any) => {
+        dispatch({ type: 'job:progress', ...payload });
+      }),
+    );
+
     return () => { unsubs.forEach((fn) => fn()); };
   }, [api]);
 
@@ -125,6 +132,7 @@ function Shell() {
       <div className={styles.body}>
         <NavRail activeView={state.view} dispatch={dispatch} />
         <main className={styles.content}>
+          {state.view === 'dashboard' && <Dashboard state={state} dispatch={dispatch} />}
           {state.view === 'companies' && <Companies dispatch={dispatch} />}
           {state.view === 'pipeline' && <Pipeline state={state} dispatch={dispatch} />}
           {state.view === 'results' && <Results state={state} dispatch={dispatch} />}

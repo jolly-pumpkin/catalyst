@@ -9,6 +9,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { view: 'dashboard',      label: 'Dashboard', icon: '\u{1F4CB}' },
   { view: 'companies',      label: 'Companies', icon: '\u{1F3E2}' },
   { view: 'pipeline',       label: 'Pipeline',  icon: '\u{2699}'  },
   { view: 'results',        label: 'Results',   icon: '\u{1F4CA}' },
