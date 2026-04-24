@@ -10,17 +10,29 @@ export interface ProviderState {
   error?: string;
 }
 
+export interface JobProgressState {
+  stage: string;
+  provider?: string;
+  total: number;
+  completed: number;
+  cached: number;
+  currentJob?: string;
+  status?: 'processing' | 'cached' | 'done';
+}
+
 export interface StageState {
   id: string;
   capability: string;
   status: StageStatus;
   durationMs?: number;
   providers: ProviderState[];
+  jobProgress?: JobProgressState;
 }
 
 export type ViewName =
   | 'user-selection'
   | 'input'
+  | 'dashboard'
   | 'pipeline'
   | 'results'
   | 'job-detail'
@@ -60,6 +72,11 @@ export interface AppState {
   // Pipeline company scope
   pipelineCompanyId?: string;
   pipelineCompanyName?: string;
+  // Dashboard
+  dashboardTab: 'overview' | 'triage';
+  dashboardFilter: { companyIds: string[] };
+  detailPanelJobId: string | null;
+  triageProgress: { triaged: number; total: number };
 }
 
 export type AppAction =
@@ -86,7 +103,13 @@ export type AppAction =
   | { type: 'company-pipeline:clear' }
   | { type: 'profile:loaded'; profile: CandidateProfile; sourceResume: string; updatedAt: string }
   | { type: 'profile:parsing' }
-  | { type: 'profile:parse-error'; error: string };
+  | { type: 'profile:parse-error'; error: string }
+  | { type: 'job:progress'; stage: string; provider?: string; total: number; completed: number; cached: number; jobTitle?: string; jobCompany?: string; status?: 'processing' | 'cached' | 'done' }
+  | { type: 'dashboard:set-tab'; tab: 'overview' | 'triage' }
+  | { type: 'dashboard:set-filter'; companyIds: string[] }
+  | { type: 'dashboard:open-detail'; jobId: string }
+  | { type: 'dashboard:close-detail' }
+  | { type: 'dashboard:update-triage'; triaged: number; total: number };
 
 export const initialState: AppState = {
   view: 'user-selection',
@@ -99,6 +122,10 @@ export const initialState: AppState = {
   results: [],
   selectedJobIndex: 0,
   done: false,
+  dashboardTab: 'overview',
+  dashboardFilter: { companyIds: [] },
+  detailPanelJobId: null,
+  triageProgress: { triaged: 0, total: 0 },
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -186,7 +213,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
 
     case 'pipeline:done':
-      return { ...state, view: 'results', results: action.results, iteration: action.iteration, selectedJobIndex: 0, done: true };
+      return { ...state, view: 'dashboard', results: action.results, iteration: action.iteration, selectedJobIndex: 0, done: true };
 
     case 'pipeline:fail':
       return { ...state, error: action.error, done: true };
@@ -214,6 +241,39 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'profile:parse-error':
       return { ...state, profileParsing: false, profileError: action.error };
+
+    case 'job:progress': {
+      const currentJob = action.jobTitle
+        ? (action.jobCompany ? `${action.jobTitle} @ ${action.jobCompany}` : action.jobTitle)
+        : undefined;
+      const progress: JobProgressState = {
+        stage: action.stage,
+        provider: action.provider,
+        total: action.total,
+        completed: action.completed,
+        cached: action.cached,
+        currentJob,
+        status: action.status,
+      };
+      return { ...state, stages: state.stages.map((s) =>
+        s.id === action.stage ? { ...s, jobProgress: progress } : s
+      )};
+    }
+
+    case 'dashboard:set-tab':
+      return { ...state, dashboardTab: action.tab };
+
+    case 'dashboard:set-filter':
+      return { ...state, dashboardFilter: { companyIds: action.companyIds } };
+
+    case 'dashboard:open-detail':
+      return { ...state, detailPanelJobId: action.jobId };
+
+    case 'dashboard:close-detail':
+      return { ...state, detailPanelJobId: null };
+
+    case 'dashboard:update-triage':
+      return { ...state, triageProgress: { triaged: action.triaged, total: action.total } };
 
     default:
       return state;
