@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../api.js';
 import type { AppAction } from '../state.js';
-import type { CompanySource } from '../../types.js';
+import type { CompanyFilters, CompanySource } from '../../types.js';
 import styles from './Companies.module.css';
 
 interface CompaniesProps {
@@ -14,6 +14,8 @@ export function Companies({ dispatch }: CompaniesProps) {
   const [addMode, setAddMode] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [status, setStatus] = useState('');
+  const [editingFilters, setEditingFilters] = useState<string | null>(null);
+  const [filterDraft, setFilterDraft] = useState<CompanyFilters>({});
 
   const refresh = useCallback(async () => {
     try {
@@ -83,17 +85,57 @@ export function Companies({ dispatch }: CompaniesProps) {
     }
   }
 
-  function handleRunPipeline(company: CompanySource) {
+  async function handleRunPipeline(company: CompanySource) {
     if (!company.enabled) {
       setStatus(`${company.name} is disabled -- enable it first`);
       return;
     }
-    dispatch({ type: 'company-pipeline:start', companyId: company.id, companyName: company.name });
-    dispatch({ type: 'view:change', view: 'resume-manager' });
+    setStatus(`Starting pipeline for ${company.name}...`);
+    try {
+      const docs = await api.docs.list();
+      if (!docs || docs.length === 0) {
+        setStatus('No resume found. Import one via Resume Manager first.');
+        return;
+      }
+      const doc = docs[0];
+      const text = await api.docs.read(doc.path);
+      dispatch({ type: 'company-pipeline:start', companyId: company.id, companyName: company.name });
+      dispatch({ type: 'resume:selected', resumeName: doc.name, resumeText: text });
+      await api.pipeline.runCompany(text, doc.name, company.id);
+    } catch (err) {
+      setStatus(`Pipeline error: ${err}`);
+    }
   }
 
   function handleViewKanban(company: CompanySource) {
     dispatch({ type: 'kanban:open', companyId: company.id, companyName: company.name });
+  }
+
+  function openFilterEditor(company: CompanySource) {
+    setEditingFilters(company.id);
+    setFilterDraft(company.filters ?? {});
+  }
+
+  async function saveFilters(companyId: string) {
+    try {
+      await api.companies.setFilters(companyId, filterDraft);
+      setStatus('Filters saved');
+      setEditingFilters(null);
+      await refresh();
+    } catch (err) {
+      setStatus(`Error saving filters: ${err}`);
+    }
+  }
+
+  function updateFilterDraft(key: keyof CompanyFilters, value: string) {
+    setFilterDraft((prev) => {
+      if (key === 'postedWithinDays') {
+        const num = parseInt(value, 10);
+        return { ...prev, [key]: isNaN(num) ? undefined : num };
+      }
+      const arr = value.split(',').map((s) => s.trim()).filter(Boolean);
+      return { ...prev, [key]: arr.length > 0 ? arr : undefined };
+    });
   }
 
   return (
@@ -147,28 +189,82 @@ export function Companies({ dispatch }: CompaniesProps) {
             </thead>
             <tbody>
               {companies.map((c) => (
-                <tr key={c.id}>
-                  <td>{c.name}</td>
-                  <td><span className={styles.atsType}>{c.atsType}</span></td>
-                  <td>
-                    <span className={`${styles.enabledBadge} ${c.enabled ? styles.enabled : styles.disabled}`}>
-                      {c.enabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td>{c.jobCount}</td>
-                  <td>{c.lastIndexedAt ? new Date(c.lastIndexedAt).toLocaleDateString() : '--'}</td>
-                  <td>
-                    <div className={styles.rowActions}>
-                      <button className={styles.rowBtn} onClick={() => handleToggle(c)}>
-                        {c.enabled ? 'Disable' : 'Enable'}
-                      </button>
-                      <button className={styles.rowBtn} onClick={() => handleIndex(c)}>Index</button>
-                      <button className={styles.rowBtn} onClick={() => handleRunPipeline(c)}>Run</button>
-                      <button className={styles.rowBtn} onClick={() => handleViewKanban(c)}>Kanban</button>
-                      <button className={`${styles.rowBtn} ${styles.btnDanger}`} onClick={() => handleRemove(c)}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={c.id}>
+                  <tr>
+                    <td>{c.name}</td>
+                    <td><span className={styles.atsType}>{c.atsType}</span></td>
+                    <td>
+                      <span className={`${styles.enabledBadge} ${c.enabled ? styles.enabled : styles.disabled}`}>
+                        {c.enabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </td>
+                    <td>{c.jobCount}</td>
+                    <td>{c.lastIndexedAt ? new Date(c.lastIndexedAt).toLocaleDateString() : '--'}</td>
+                    <td>
+                      <div className={styles.rowActions}>
+                        <button className={styles.rowBtn} onClick={() => handleToggle(c)}>
+                          {c.enabled ? 'Disable' : 'Enable'}
+                        </button>
+                        <button className={styles.rowBtn} onClick={() => handleIndex(c)}>Index</button>
+                        <button className={styles.rowBtn} onClick={() => openFilterEditor(c)}>Filters</button>
+                        <button className={styles.rowBtn} onClick={() => handleRunPipeline(c)}>Run</button>
+                        <button className={styles.rowBtn} onClick={() => handleViewKanban(c)}>Kanban</button>
+                        <button className={`${styles.rowBtn} ${styles.btnDanger}`} onClick={() => handleRemove(c)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  {editingFilters === c.id && (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className={styles.filterPanel}>
+                          <div className={styles.filterRow}>
+                            <label className={styles.filterLabel}>Title keywords</label>
+                            <input
+                              className={styles.filterInput}
+                              value={(filterDraft.titleKeywords ?? []).join(', ')}
+                              onChange={(e) => updateFilterDraft('titleKeywords', e.target.value)}
+                              placeholder="Engineer, Developer, SRE"
+                            />
+                          </div>
+                          <div className={styles.filterRow}>
+                            <label className={styles.filterLabel}>Locations</label>
+                            <input
+                              className={styles.filterInput}
+                              value={(filterDraft.locations ?? []).join(', ')}
+                              onChange={(e) => updateFilterDraft('locations', e.target.value)}
+                              placeholder="Remote, San Francisco, NYC"
+                            />
+                          </div>
+                          <div className={styles.filterRow}>
+                            <label className={styles.filterLabel}>Departments</label>
+                            <input
+                              className={styles.filterInput}
+                              value={(filterDraft.departments ?? []).join(', ')}
+                              onChange={(e) => updateFilterDraft('departments', e.target.value)}
+                              placeholder="Engineering, Product, Design"
+                            />
+                          </div>
+                          <div className={styles.filterRow}>
+                            <label className={styles.filterLabel}>Posted within (days)</label>
+                            <input
+                              className={styles.filterInput}
+                              type="number"
+                              value={filterDraft.postedWithinDays ?? ''}
+                              onChange={(e) => updateFilterDraft('postedWithinDays', e.target.value)}
+                              placeholder="30"
+                            />
+                          </div>
+                          <div className={styles.filterActions}>
+                            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => saveFilters(c.id)}>
+                              Save Filters
+                            </button>
+                            <button className={styles.btn} onClick={() => setEditingFilters(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
