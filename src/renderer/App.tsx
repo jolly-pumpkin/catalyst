@@ -1,7 +1,8 @@
-import React, { useReducer, useEffect, useState } from 'react';
+import React, { useReducer, useEffect, useState, useCallback } from 'react';
 import { ApiProvider, useApi } from './api.js';
 import { appReducer, initialState } from './state.js';
-import type { AppState, AppAction } from './state.js';
+import type { AppAction } from './state.js';
+import type { JobKanbanColumn } from '../types.js';
 import { Toolbar } from './components/Toolbar.js';
 import { NavRail } from './components/NavRail.js';
 import { StatusBar } from './components/StatusBar.js';
@@ -118,6 +119,20 @@ function Shell() {
     return () => { unsubs.forEach((fn) => fn()); };
   }, [api]);
 
+  /* ---------- detail panel action handler ---------- */
+  const handleDetailAction = useCallback(async (jobId: string, column: JobKanbanColumn) => {
+    const companyId = state.pipelineCompanyId;
+    if (!companyId) {
+      const companies = await api.companies.list();
+      const fallback = companies[0]?.id;
+      if (!fallback) return;
+      await api.kanban.move(jobId, fallback, column);
+    } else {
+      await api.kanban.move(jobId, companyId, column);
+    }
+    dispatch({ type: 'detail:close' });
+  }, [api, state.pipelineCompanyId]);
+
   /* ---------- render ---------- */
   if (loading) {
     return null;
@@ -158,6 +173,7 @@ function Shell() {
               ranked={state.detailPanel.ranked}
               analyses={state.detailPanel.analyses}
               onClose={() => dispatch({ type: 'detail:close' })}
+              onAction={handleDetailAction}
             />
           )}
         </div>

@@ -70,12 +70,6 @@
   overflow-y: auto;
 }
 
-.mainWithPanel {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 1rem;
-  max-width: 60%;
-}
 
 .sectionTitle {
   font-size: 1rem;
