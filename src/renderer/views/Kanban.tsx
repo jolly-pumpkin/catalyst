@@ -13,6 +13,7 @@ interface KanbanProps {
   dispatch: React.Dispatch<AppAction>;
 }
 
+// TODO: kanban detail panel support needs a getJobDetail IPC endpoint
 export function Kanban({ companyId, companyName, dispatch }: KanbanProps) {
   const api = useApi();
   const [jobsByColumn, setJobsByColumn] = useState<Record<JobKanbanColumn, KanbanCardData[]>>({

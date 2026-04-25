@@ -17,6 +17,7 @@ import { Settings } from './views/Settings.js';
 import { Traces } from './views/Traces.js';
 import { Dashboard } from './views/Dashboard.js';
 import { UserSetup } from './views/UserSetup.js';
+import { DetailPanel } from './components/DetailPanel.js';
 import styles from './styles/App.module.css';
 
 /* ---------- placeholder for views not yet ported ---------- */
@@ -131,26 +132,35 @@ function Shell() {
       <Toolbar state={state} dispatch={dispatch} />
       <div className={styles.body}>
         <NavRail activeView={state.view} dispatch={dispatch} />
-        <main className={styles.content}>
-          {state.view === 'dashboard' && <Dashboard state={state} dispatch={dispatch} />}
-          {state.view === 'companies' && <Companies dispatch={dispatch} />}
-          {state.view === 'pipeline' && <Pipeline state={state} dispatch={dispatch} />}
-          {state.view === 'results' && <Results state={state} dispatch={dispatch} />}
-          {state.view === 'job-detail' && <JobDetail state={state} dispatch={dispatch} />}
-          {state.view === 'history' && <History dispatch={dispatch} />}
-          {state.view === 'profile' && <Profile state={state} dispatch={dispatch} />}
-          {state.view === 'resume-manager' && <ResumeManager state={state} dispatch={dispatch} />}
-          {state.view === 'kanban' && state.kanbanCompanyId && state.kanbanCompanyName && (
-            <Kanban
-              companyId={state.kanbanCompanyId}
-              companyName={state.kanbanCompanyName}
-              dispatch={dispatch}
+        <div className={styles.contentArea}>
+          <main className={styles.content}>
+            {state.view === 'dashboard' && <Dashboard state={state} dispatch={dispatch} />}
+            {state.view === 'companies' && <Companies dispatch={dispatch} />}
+            {state.view === 'pipeline' && <Pipeline state={state} dispatch={dispatch} />}
+            {state.view === 'results' && <Results state={state} dispatch={dispatch} />}
+            {state.view === 'job-detail' && <JobDetail state={state} dispatch={dispatch} />}
+            {state.view === 'history' && <History dispatch={dispatch} />}
+            {state.view === 'profile' && <Profile state={state} dispatch={dispatch} />}
+            {state.view === 'resume-manager' && <ResumeManager state={state} dispatch={dispatch} />}
+            {state.view === 'kanban' && state.kanbanCompanyId && state.kanbanCompanyName && (
+              <Kanban
+                companyId={state.kanbanCompanyId}
+                companyName={state.kanbanCompanyName}
+                dispatch={dispatch}
+              />
+            )}
+            {state.view === 'traces' && <Traces />}
+            {state.view === 'input' && <Placeholder name="Input" />}
+            {state.view === 'settings' && <Settings />}
+          </main>
+          {state.detailPanel && (
+            <DetailPanel
+              ranked={state.detailPanel.ranked}
+              analyses={state.detailPanel.analyses}
+              onClose={() => dispatch({ type: 'detail:close' })}
             />
           )}
-          {state.view === 'traces' && <Traces />}
-          {state.view === 'input' && <Placeholder name="Input" />}
-          {state.view === 'settings' && <Settings />}
-        </main>
+        </div>
       </div>
       <StatusBar state={state} />
     </div>

@@ -75,7 +75,7 @@ export interface AppState {
   // Dashboard
   dashboardTab: 'overview' | 'triage';
   dashboardFilter: { companyIds: string[] };
-  detailPanelJobId: string | null;
+  detailPanel: { ranked: RankedJob; analyses: JobAnalysis[] } | null;
   triageProgress: { triaged: number; total: number };
 }
 
@@ -107,8 +107,8 @@ export type AppAction =
   | { type: 'job:progress'; stage: string; provider?: string; total: number; completed: number; cached: number; jobTitle?: string; jobCompany?: string; status?: 'processing' | 'cached' | 'done' }
   | { type: 'dashboard:set-tab'; tab: 'overview' | 'triage' }
   | { type: 'dashboard:set-filter'; companyIds: string[] }
-  | { type: 'dashboard:open-detail'; jobId: string }
-  | { type: 'dashboard:close-detail' }
+  | { type: 'detail:open'; ranked: RankedJob; analyses: JobAnalysis[] }
+  | { type: 'detail:close' }
   | { type: 'dashboard:update-triage'; triaged: number; total: number };
 
 export const initialState: AppState = {
@@ -124,7 +124,7 @@ export const initialState: AppState = {
   done: false,
   dashboardTab: 'overview',
   dashboardFilter: { companyIds: [] },
-  detailPanelJobId: null,
+  detailPanel: null,
   triageProgress: { triaged: 0, total: 0 },
 };
 
@@ -222,7 +222,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, selectedJobIndex: action.index };
 
     case 'view:change':
-      return { ...state, view: action.view };
+      return { ...state, view: action.view, detailPanel: null };
 
     case 'kanban:open':
       return { ...state, view: 'kanban', kanbanCompanyId: action.companyId, kanbanCompanyName: action.companyName };
@@ -266,11 +266,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'dashboard:set-filter':
       return { ...state, dashboardFilter: { companyIds: action.companyIds } };
 
-    case 'dashboard:open-detail':
-      return { ...state, detailPanelJobId: action.jobId };
+    case 'detail:open':
+      return { ...state, detailPanel: { ranked: action.ranked, analyses: action.analyses } };
 
-    case 'dashboard:close-detail':
-      return { ...state, detailPanelJobId: null };
+    case 'detail:close':
+      return { ...state, detailPanel: null };
 
     case 'dashboard:update-triage':
       return { ...state, triageProgress: { triaged: action.triaged, total: action.total } };

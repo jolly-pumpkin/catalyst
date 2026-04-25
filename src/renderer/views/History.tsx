@@ -22,9 +22,11 @@ export function History({ dispatch }: HistoryProps) {
 
   async function handleSelect(runId: string) {
     try {
-      const jobs = await api.results.getJobs(runId);
+      const detail = await api.results.getRun(runId);
+      if (!detail) return;
       // Navigate to results with loaded data
-      dispatch({ type: 'pipeline:done', results: jobs, iteration: 1, durationMs: 0 });
+      dispatch({ type: 'pipeline:done', results: detail.jobs, iteration: detail.run.iteration ?? 1, durationMs: 0 });
+      dispatch({ type: 'pipeline:enrich', analyses: detail.analyses });
       dispatch({ type: 'view:change', view: 'results' });
     } catch {
       // ignore

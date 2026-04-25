@@ -12,8 +12,10 @@ export function Results({ state, dispatch }: ResultsProps) {
   const total = state.results.length;
 
   function handleClick(index: number) {
-    dispatch({ type: 'results:navigate', index });
-    dispatch({ type: 'view:change', view: 'job-detail' });
+    const ranked = state.results[index];
+    if (!ranked) return;
+    const jobAnalyses = (state.analyses ?? []).filter((a) => a.jobId === ranked.job.id);
+    dispatch({ type: 'detail:open', ranked, analyses: jobAnalyses });
   }
 
   if (total === 0) {

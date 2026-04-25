@@ -22,6 +22,13 @@ export function DetailPanel({ ranked, analyses, onClose, onAction }: DetailPanel
         <button className={styles.closeBtn} onClick={onClose}>&times;</button>
       </div>
 
+      <div className={styles.actions}>
+        <button className={styles.actionBtn} onClick={() => onAction?.(job.id, 'looking-at')}>Looking At</button>
+        <button className={`${styles.actionBtn} ${styles.applyBtn}`} onClick={() => onAction?.(job.id, 'applying')}>Applying</button>
+        <button className={`${styles.actionBtn} ${styles.rejectBtn}`} onClick={() => onAction?.(job.id, 'rejected')}>Reject</button>
+        <button className={styles.actionBtn} onClick={() => onAction?.(job.id, 'not-applying')}>Skip</button>
+      </div>
+
       <div className={styles.scroll}>
         <div className={styles.title}>{job.title}</div>
         <div className={styles.company}>
@@ -100,13 +107,6 @@ export function DetailPanel({ ranked, analyses, onClose, onAction }: DetailPanel
             ))}
           </div>
         )}
-
-        <div className={styles.actions}>
-          <button className={styles.actionBtn} onClick={() => onAction?.(job.id, 'looking-at')}>Looking At</button>
-          <button className={`${styles.actionBtn} ${styles.applyBtn}`} onClick={() => onAction?.(job.id, 'applying')}>Applying</button>
-          <button className={`${styles.actionBtn} ${styles.rejectBtn}`} onClick={() => onAction?.(job.id, 'rejected')}>Reject</button>
-          <button className={styles.actionBtn} onClick={() => onAction?.(job.id, 'not-applying')}>Skip</button>
-        </div>
 
         <div className={styles.section}>
           <div className={styles.sectionTitle}>Description</div>

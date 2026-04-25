@@ -7,7 +7,6 @@ import { QuickStats } from '../components/QuickStats.js';
 import { JobCard } from '../components/JobCard.js';
 import { NearMissGroup } from '../components/NearMissGroup.js';
 import { FeedbackInsights } from '../components/FeedbackInsights.js';
-import { DetailPanel } from '../components/DetailPanel.js';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
@@ -40,7 +39,6 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const [feedbackNotes, setFeedbackNotes] = useState('');
 
   const companyFilter = state.dashboardFilter.companyIds;
-  const detailJobId = state.detailPanelJobId;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -65,7 +63,6 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const allJobs = entries.map((e) => e.ranked);
   const allAnalyses = entries.flatMap((e) => e.analyses);
   const topPicks = allJobs.filter((j) => j.overallScore >= TOP_PICK_THRESHOLD);
-  const detailEntry = detailJobId ? entries.find((e) => e.ranked.job.id === detailJobId) : null;
 
   const handleAction = useCallback(async (jobId: string, column: JobKanbanColumn) => {
     if (column === 'rejected' || column === 'not-applying') {
@@ -101,12 +98,11 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   }, [api, feedbackModal, feedbackTags, feedbackNotes, companies, state.pipelineCompanyId, loadData]);
 
   const handleOpenDetail = useCallback((jobId: string) => {
-    dispatch({ type: 'dashboard:open-detail', jobId });
-  }, [dispatch]);
-
-  const handleCloseDetail = useCallback(() => {
-    dispatch({ type: 'dashboard:close-detail' });
-  }, [dispatch]);
+    const entry = entries.find((e) => e.ranked.job.id === jobId);
+    if (entry) {
+      dispatch({ type: 'detail:open', ranked: entry.ranked, analyses: entry.analyses });
+    }
+  }, [dispatch, entries]);
 
   const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -164,7 +160,7 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
       </div>
 
       <div className={styles.body}>
-        <div className={detailEntry ? styles.mainWithPanel : styles.main}>
+        <div className={styles.main}>
           {/* Overview Tab */}
           {state.dashboardTab === 'overview' && (
             <>
@@ -222,15 +218,6 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
           )}
         </div>
 
-        {/* Detail Panel */}
-        {detailEntry && (
-          <DetailPanel
-            ranked={detailEntry.ranked}
-            analyses={detailEntry.analyses}
-            onClose={handleCloseDetail}
-            onAction={handleAction}
-          />
-        )}
       </div>
 
       {feedbackModal && (
