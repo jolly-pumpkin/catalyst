@@ -50,7 +50,16 @@ export function registerDashboardHandlers(): void {
       }
     }
 
-    return entries;
+    // Enrich entries with kanban column
+    try {
+      const kanban = broker.resolve<KanbanStoreCapability>('kanban.store');
+      return entries.map((e) => ({
+        ...e,
+        kanbanColumn: kanban.getJobColumn(e.ranked.job.id) ?? 'new',
+      }));
+    } catch {
+      return entries;
+    }
   });
 
   ipcMain.handle(IPC.KANBAN_FEEDBACK_SUMMARY, async (_event, companyIds?: string[]) => {

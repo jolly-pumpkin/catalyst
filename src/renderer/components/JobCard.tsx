@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import type { RankedJob, JobAnalysis, JobKanbanColumn } from '../../types.js';
 import { ScoreBar } from './ScoreBar.js';
+import { ScorePill } from './ScorePill.js';
 import styles from './JobCard.module.css';
 
 interface JobCardProps {
   ranked: RankedJob;
   analyses?: JobAnalysis[];
+  kanbanColumn?: JobKanbanColumn;
   onAction?: (jobId: string, column: JobKanbanColumn) => void;
   onOpenDetail?: (jobId: string) => void;
 }
 
-export function JobCard({ ranked, analyses, onAction, onOpenDetail }: JobCardProps) {
+export function JobCard({ ranked, analyses, kanbanColumn, onAction, onOpenDetail }: JobCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { job } = ranked;
   const skillAnalysis = analyses?.find((a) => a.variant === 'skill');
   const topSignals = analyses?.flatMap((a) => a.signals).slice(0, 3) ?? [];
+
+  const matchedSkills = (skillAnalysis?.matchedSkills ?? []).slice(0, 3);
+  const missingSkills = (skillAnalysis?.missingSkills ?? []).slice(0, 2);
 
   return (
     <div className={styles.card}>
@@ -29,8 +34,28 @@ export function JobCard({ ranked, analyses, onAction, onOpenDetail }: JobCardPro
       <div className={styles.scoreRow}>
         <ScoreBar score={ranked.overallScore} label="Overall" />
       </div>
+      <div className={styles.infoRow}>
+        <ScorePill label="Skill" score={ranked.scores.skill} />
+        <ScorePill label="Culture" score={ranked.scores.culture} />
+        <ScorePill label="Salary" score={ranked.scores.salary} />
+      </div>
+      {(matchedSkills.length > 0 || missingSkills.length > 0) && (
+        <div className={styles.skillTags}>
+          {matchedSkills.map((s) => (
+            <span key={s} className={styles.matchTag}>{s}</span>
+          ))}
+          {missingSkills.map((s) => (
+            <span key={s} className={styles.gapTag}>{s}</span>
+          ))}
+        </div>
+      )}
       <div className={styles.summaryRow}>{ranked.summary}</div>
       <div className={styles.metaRow}>
+        {job.location && <span className={styles.location}>{job.location}</span>}
+        {job.remote && <span className={styles.remoteBadge}>Remote</span>}
+        {kanbanColumn && kanbanColumn !== 'new' && (
+          <span className={styles.kanbanBadge}>{kanbanColumn.replace('-', ' ')}</span>
+        )}
         <span className={styles.sourceBadge}>{job.source}</span>
       </div>
 

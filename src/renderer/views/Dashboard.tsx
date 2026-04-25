@@ -17,6 +17,7 @@ interface DashboardProps {
 interface DashboardEntry {
   ranked: RankedJob;
   analyses: JobAnalysis[];
+  kanbanColumn?: JobKanbanColumn;
 }
 
 interface FeedbackSummary {
@@ -178,6 +179,7 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
                       key={ranked.job.id}
                       ranked={ranked}
                       analyses={entry?.analyses}
+                      kanbanColumn={entry?.kanbanColumn}
                       onAction={handleAction}
                       onOpenDetail={handleOpenDetail}
                     />
@@ -209,6 +211,7 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
                     key={ranked.job.id}
                     ranked={ranked}
                     analyses={entry?.analyses}
+                    kanbanColumn={entry?.kanbanColumn}
                     onAction={handleAction}
                     onOpenDetail={handleOpenDetail}
                   />
