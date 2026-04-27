@@ -7,6 +7,7 @@ import { QuickStats } from '../components/QuickStats.js';
 import { JobCard } from '../components/JobCard.js';
 import { NearMissGroup } from '../components/NearMissGroup.js';
 import { FeedbackInsights } from '../components/FeedbackInsights.js';
+import { PipelineHealthBar } from '../components/PipelineHealthBar.js';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
@@ -34,6 +35,8 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const [entries, setEntries] = useState<DashboardEntry[]>([]);
   const [companies, setCompanies] = useState<CompanySource[]>([]);
   const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
+  const [stageCounts, setStageCounts] = useState<Record<JobKanbanColumn, number> | null>(null);
+  const [recentActivity, setRecentActivity] = useState<{ reviewed: number; applied: number; rejected: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedbackModal, setFeedbackModal] = useState<{ jobId: string; column: JobKanbanColumn } | null>(null);
   const [feedbackTags, setFeedbackTags] = useState<FeedbackTag[]>([]);
@@ -44,14 +47,19 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [jobData, fbData, companyList] = await Promise.all([
-        api.results.getAllJobs(companyFilter.length > 0 ? companyFilter : undefined),
-        api.dashboard.feedbackSummary(companyFilter.length > 0 ? companyFilter : undefined),
+      const filterArg = companyFilter.length > 0 ? companyFilter : undefined;
+      const [jobData, fbData, companyList, stageData, activityData] = await Promise.all([
+        api.results.getAllJobs(filterArg),
+        api.dashboard.feedbackSummary(filterArg),
         api.companies.list(),
+        api.dashboard.stageCounts(filterArg),
+        api.dashboard.recentActivity(),
       ]);
       setEntries(jobData);
       setFeedbackSummary(fbData);
       setCompanies(companyList);
+      setStageCounts(stageData);
+      setRecentActivity(activityData);
     } catch {
       // API may not be available yet
     } finally {
@@ -60,6 +68,19 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   }, [api, companyFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const getTopTag = (summary: FeedbackSummary | null): { tag: string; count: number } | null => {
+    if (!summary) return null;
+    let topTag: string | null = null;
+    let topCount = 0;
+    for (const [tag, count] of Object.entries(summary.tagCounts)) {
+      if (count > topCount) {
+        topTag = tag;
+        topCount = count;
+      }
+    }
+    return topTag && topCount >= 2 ? { tag: topTag, count: topCount } : null;
+  };
 
   const allJobs = entries.map((e) => e.ranked);
   const allAnalyses = entries.flatMap((e) => e.analyses);
@@ -166,6 +187,14 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
           {/* Overview Tab */}
           {state.dashboardTab === 'overview' && (
             <>
+              {stageCounts && recentActivity && (
+                <PipelineHealthBar
+                  stageCounts={stageCounts}
+                  recentActivity={recentActivity}
+                  topRejectionTag={getTopTag(feedbackSummary)}
+                  jobs={allJobs}
+                />
+              )}
               <QuickStats jobs={allJobs} analyses={allAnalyses} />
               <FeedbackInsights summary={feedbackSummary} />
 

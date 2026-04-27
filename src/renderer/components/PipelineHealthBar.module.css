@@ -1,0 +1,131 @@
+.healthBar {
+  display: flex;
+  gap: 1.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  margin-bottom: 0.75rem;
+  align-items: stretch;
+}
+
+.section {
+  flex: 1;
+  min-width: 0;
+}
+
+.sectionLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+/* Pipeline stage bar */
+.stageBar {
+  display: flex;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.stageSegment {
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.2s ease;
+}
+
+.stageNew { background: var(--accent); }
+.stageLooking { background: var(--warning); }
+.stageApplying { background: var(--success); }
+.stageRejected { background: var(--text-secondary); opacity: 0.5; }
+
+.legend {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Score distribution */
+.scoreBuckets {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 32px;
+}
+
+.scoreBucket {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  opacity: 0.7;
+  transition: height 0.2s ease;
+}
+
+.scoreLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+/* Weekly activity */
+.activityRow {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.activityValue {
+  font-weight: 600;
+}
+
+.activityLabel {
+  color: var(--text-secondary);
+}
+
+/* Top rejection reason */
+.topTag {
+  font-size: 0.8rem;
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.topTagCount {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-left: 0.3rem;
+}
+
+.noData {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Divider between sections */
+.section + .section {
+  border-left: 1px solid var(--border);
+  padding-left: 1.25rem;
+}

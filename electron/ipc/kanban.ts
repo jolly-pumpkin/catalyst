@@ -12,6 +12,20 @@ export function registerKanbanHandlers(): void {
     return kanban.getColumnJobs(companyId, column as JobKanbanColumn);
   });
 
+  ipcMain.handle(IPC.KANBAN_STAGE_COUNTS, async (_e, companyIds?: string[]) => {
+    const broker = getBroker();
+    if (!broker) throw new Error('No user selected');
+    const kanban = broker.resolve<KanbanStoreCapability>('kanban.store');
+    return kanban.getStageCounts(companyIds?.[0]);
+  });
+
+  ipcMain.handle(IPC.KANBAN_RECENT_ACTIVITY, async () => {
+    const broker = getBroker();
+    if (!broker) throw new Error('No user selected');
+    const kanban = broker.resolve<KanbanStoreCapability>('kanban.store');
+    return kanban.getRecentActivityCount(7);
+  });
+
   ipcMain.handle(
     IPC.KANBAN_MOVE,
     async (

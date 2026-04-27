@@ -53,6 +53,10 @@ const api = {
   dashboard: {
     feedbackSummary: (companyIds?: string[]) =>
       ipcRenderer.invoke(IPC.KANBAN_FEEDBACK_SUMMARY, companyIds),
+    stageCounts: (companyIds?: string[]) =>
+      ipcRenderer.invoke(IPC.KANBAN_STAGE_COUNTS, companyIds),
+    recentActivity: () =>
+      ipcRenderer.invoke(IPC.KANBAN_RECENT_ACTIVITY),
   },
 
   profile: {

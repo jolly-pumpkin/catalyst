@@ -33,6 +33,12 @@ export interface KanbanStoreCapability {
     tagCounts: Record<FeedbackTag, number>;
     recentNotes: string[];
   };
+
+  /** Get job counts grouped by kanban column. */
+  getStageCounts(companySourceId?: string): Record<JobKanbanColumn, number>;
+
+  /** Get recent activity counts (reviewed, applied, rejected) within the last N days. */
+  getRecentActivityCount(sinceDays?: number): { reviewed: number; applied: number; rejected: number };
 }
 
 export function kanbanStorePlugin(): Plugin {
@@ -166,6 +172,33 @@ export function kanbanStorePlugin(): Plugin {
           }
 
           return { totalRejected, totalNotApplying, tagCounts, recentNotes: recentNotes.slice(-10) };
+        },
+
+        getStageCounts(companySourceId?: string): Record<JobKanbanColumn, number> {
+          const where = companySourceId ? 'WHERE company_source_id = ?' : '';
+          const params = companySourceId ? [companySourceId] : [];
+          const rows = db.prepare(
+            `SELECT column_name, COUNT(*) as cnt FROM job_kanban ${where} GROUP BY column_name`
+          ).all(...params) as { column_name: string; cnt: number }[];
+          const counts: Record<string, number> = {
+            new: 0, 'looking-at': 0, applying: 0, rejected: 0, 'not-applying': 0,
+          };
+          for (const row of rows) counts[row.column_name] = row.cnt;
+          return counts as Record<JobKanbanColumn, number>;
+        },
+
+        getRecentActivityCount(sinceDays: number = 7): { reviewed: number; applied: number; rejected: number } {
+          const since = new Date(Date.now() - sinceDays * 86400000).toISOString();
+          const rows = db.prepare(
+            `SELECT column_name, COUNT(*) as cnt FROM job_kanban WHERE updated_at >= ? AND column_name != 'new' GROUP BY column_name`
+          ).all(since) as { column_name: string; cnt: number }[];
+          let reviewed = 0, applied = 0, rejected = 0;
+          for (const row of rows) {
+            if (row.column_name === 'applying') applied = row.cnt;
+            else if (row.column_name === 'rejected' || row.column_name === 'not-applying') rejected += row.cnt;
+            reviewed += row.cnt;
+          }
+          return { reviewed, applied, rejected };
         },
       } satisfies KanbanStoreCapability);
     },

@@ -127,6 +127,14 @@ export const UserManager = defineCapability<{
   setCurrentId(id: string): void;
 }>('user.manager');
 
+// --- Profile storage capabilities ---
+
+export const ProfileStoreCapability = defineCapability<{
+  get(): CandidateProfile | null;
+  getWithMeta(): { profile: CandidateProfile; sourceResume: string; updatedAt: string } | null;
+  save(profile: CandidateProfile, sourceResume: string): void;
+}>('profile.store');
+
 // --- Kanban capabilities ---
 
 export const KanbanStoreCapability = defineCapability<{
@@ -143,4 +151,6 @@ export const KanbanStoreCapability = defineCapability<{
     tagCounts: Record<FeedbackTag, number>;
     recentNotes: string[];
   };
+  getStageCounts(companySourceId?: string): Record<JobKanbanColumn, number>;
+  getRecentActivityCount(sinceDays?: number): { reviewed: number; applied: number; rejected: number };
 }>('kanban.store');

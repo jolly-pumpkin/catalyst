@@ -15,6 +15,8 @@ export const IPC = {
   INDEX_COMPANY: 'index:company',
   KANBAN_COLUMNS: 'kanban:columns',
   KANBAN_MOVE: 'kanban:move',
+  KANBAN_STAGE_COUNTS: 'kanban:stage-counts',
+  KANBAN_RECENT_ACTIVITY: 'kanban:recent-activity',
   RESULTS_LIST_RUNS: 'results:list-runs',
   RESULTS_GET_RUN: 'results:get-run',
   RESULTS_GET_JOBS: 'results:get-jobs',
