@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useApi } from '../api.js';
 import type { AppState, AppAction } from '../state.js';
 import type { RankedJob, JobAnalysis, JobKanbanColumn, CompanySource, FeedbackTag } from '../../types.js';
@@ -8,6 +8,8 @@ import { JobCard } from '../components/JobCard.js';
 import { NearMissGroup } from '../components/NearMissGroup.js';
 import { FeedbackInsights } from '../components/FeedbackInsights.js';
 import { PipelineHealthBar } from '../components/PipelineHealthBar.js';
+import { DashboardFilters } from '../components/DashboardFilters.js';
+import type { SortBy } from '../components/DashboardFilters.js';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
@@ -41,6 +43,13 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const [feedbackModal, setFeedbackModal] = useState<{ jobId: string; column: JobKanbanColumn } | null>(null);
   const [feedbackTags, setFeedbackTags] = useState<FeedbackTag[]>([]);
   const [feedbackNotes, setFeedbackNotes] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [scoreMin, setScoreMin] = useState(0);
+  const [scoreMax, setScoreMax] = useState(100);
+  const [visibleColumns, setVisibleColumns] = useState<Set<JobKanbanColumn>>(
+    new Set(['new', 'looking-at', 'applying'])
+  );
+  const [sortBy, setSortBy] = useState<SortBy>('score');
 
   const companyFilter = state.dashboardFilter.companyIds;
 
@@ -84,8 +93,29 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
 
   const allJobs = entries.map((e) => e.ranked);
   const allAnalyses = entries.flatMap((e) => e.analyses);
-  const topPicks = allJobs.filter((j) => j.overallScore >= TOP_PICK_THRESHOLD);
   const kanbanColumns = new Map(entries.filter((e) => e.kanbanColumn).map((e) => [e.ranked.job.id, e.kanbanColumn!]));
+
+  const filteredEntries = useMemo(() => {
+    return entries.filter((e) => {
+      const { ranked, kanbanColumn } = e;
+      if (keyword && !ranked.job.title.toLowerCase().includes(keyword.toLowerCase())) return false;
+      if (ranked.overallScore < scoreMin || ranked.overallScore > scoreMax) return false;
+      if (kanbanColumn && !visibleColumns.has(kanbanColumn)) return false;
+      return true;
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'score': return b.ranked.overallScore - a.ranked.overallScore;
+        case 'company': return a.ranked.job.company.localeCompare(b.ranked.job.company);
+        case 'salary': return (b.ranked.scores.salary ?? 0) - (a.ranked.scores.salary ?? 0);
+        default: return 0;
+      }
+    });
+  }, [entries, keyword, scoreMin, scoreMax, visibleColumns, sortBy]);
+
+  const filteredJobs = filteredEntries.map((e) => e.ranked);
+  const topPicks = filteredJobs.filter((j) => j.overallScore >= TOP_PICK_THRESHOLD);
+  const filteredKanbanColumns = new Map(filteredEntries.filter((e) => e.kanbanColumn).map((e) => [e.ranked.job.id, e.kanbanColumn!]));
+  const filteredAnalyses = filteredEntries.flatMap((e) => e.analyses);
 
   const handleAction = useCallback(async (jobId: string, column: JobKanbanColumn) => {
     if (column === 'rejected' || column === 'not-applying') {
@@ -127,11 +157,6 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
     }
   }, [dispatch, entries]);
 
-  const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    dispatch({ type: 'dashboard:set-filter', companyIds: value === 'all' ? [] : [value] });
-  }, [dispatch]);
-
   if (loading) {
     return <div className={styles.container}><div className={styles.loading}>Loading dashboard...</div></div>;
   }
@@ -152,18 +177,6 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
       {/* Header */}
       <div className={styles.header}>
         <span className={styles.title}>Dashboard</span>
-        <div className={styles.filterBar}>
-          <select
-            className={styles.companyFilter}
-            value={companyFilter.length === 0 ? 'all' : companyFilter[0]}
-            onChange={handleFilterChange}
-          >
-            <option value="all">All Companies</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* Tabs */}
@@ -181,6 +194,26 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
           Triage
         </button>
       </div>
+
+      {/* Filter bar */}
+      <DashboardFilters
+        companies={companies}
+        selectedCompanyIds={companyFilter}
+        onCompanyChange={(ids) => dispatch({ type: 'dashboard:set-filter', companyIds: ids })}
+        scoreMin={scoreMin}
+        scoreMax={scoreMax}
+        onScoreChange={(min, max) => { setScoreMin(min); setScoreMax(max); }}
+        keyword={keyword}
+        onKeywordChange={setKeyword}
+        visibleColumns={visibleColumns}
+        onColumnToggle={(col) => setVisibleColumns((prev) => {
+          const next = new Set(prev);
+          if (next.has(col)) next.delete(col); else next.add(col);
+          return next;
+        })}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
 
       <div className={styles.body}>
         <div className={styles.main}>
@@ -203,7 +236,7 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
                 <div className={styles.sectionEmpty}>No strong matches yet.</div>
               ) : (
                 topPicks.map((ranked) => {
-                  const entry = entries.find((e) => e.ranked.job.id === ranked.job.id);
+                  const entry = filteredEntries.find((e) => e.ranked.job.id === ranked.job.id);
                   return (
                     <JobCard
                       key={ranked.job.id}
@@ -218,9 +251,9 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
               )}
 
               <NearMissGroup
-                jobs={allJobs}
-                analyses={allAnalyses}
-                kanbanColumns={kanbanColumns}
+                jobs={filteredJobs}
+                analyses={filteredAnalyses}
+                kanbanColumns={filteredKanbanColumns}
                 onAction={handleAction}
                 onOpenDetail={handleOpenDetail}
               />
@@ -232,11 +265,11 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
             <>
               <div className={styles.triageHeader}>
                 <span className={styles.triageCount}>
-                  {allJobs.length} job{allJobs.length !== 1 ? 's' : ''} to review
+                  {filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''} to review
                 </span>
               </div>
-              {allJobs.map((ranked) => {
-                const entry = entries.find((e) => e.ranked.job.id === ranked.job.id);
+              {filteredJobs.map((ranked) => {
+                const entry = filteredEntries.find((e) => e.ranked.job.id === ranked.job.id);
                 return (
                   <JobCard
                     key={ranked.job.id}
