@@ -10,6 +10,7 @@ import { FeedbackInsights } from '../components/FeedbackInsights.js';
 import { PipelineHealthBar } from '../components/PipelineHealthBar.js';
 import { DashboardFilters } from '../components/DashboardFilters.js';
 import type { SortBy } from '../components/DashboardFilters.js';
+import { ActivityLog } from '../components/ActivityLog.js';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
@@ -193,6 +194,12 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
         >
           Triage
         </button>
+        <button
+          className={`${styles.tab} ${state.dashboardTab === 'activity' ? styles.tabActive : ''}`}
+          onClick={() => dispatch({ type: 'dashboard:set-tab', tab: 'activity' })}
+        >
+          Activity
+        </button>
       </div>
 
       {/* Filter bar */}
@@ -282,6 +289,18 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
                 );
               })}
             </>
+          )}
+
+          {/* Activity Tab */}
+          {state.dashboardTab === 'activity' && (
+            <ActivityLog
+              onOpenDetail={(jobId) => {
+                const entry = entries.find((e) => e.ranked.job.id === jobId);
+                if (entry) {
+                  dispatch({ type: 'detail:open', ranked: entry.ranked, analyses: entry.analyses });
+                }
+              }}
+            />
           )}
         </div>
 

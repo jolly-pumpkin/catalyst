@@ -26,6 +26,13 @@ export function registerKanbanHandlers(): void {
     return kanban.getRecentActivityCount(7);
   });
 
+  ipcMain.handle(IPC.KANBAN_RECENT_MOVES, async () => {
+    const broker = getBroker();
+    if (!broker) throw new Error('No user selected');
+    const kanban = broker.resolve<KanbanStoreCapability>('kanban.store');
+    return kanban.getRecentMoves(50);
+  });
+
   ipcMain.handle(
     IPC.KANBAN_MOVE,
     async (

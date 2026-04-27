@@ -153,4 +153,13 @@ export const KanbanStoreCapability = defineCapability<{
   };
   getStageCounts(companySourceId?: string): Record<JobKanbanColumn, number>;
   getRecentActivityCount(sinceDays?: number): { reviewed: number; applied: number; rejected: number };
+  getRecentMoves(limit?: number): {
+    jobId: string;
+    title: string;
+    company: string;
+    column: JobKanbanColumn;
+    tags: FeedbackTag[];
+    notes?: string;
+    updatedAt: string;
+  }[];
 }>('kanban.store');

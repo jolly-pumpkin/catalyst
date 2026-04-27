@@ -73,7 +73,7 @@ export interface AppState {
   pipelineCompanyId?: string;
   pipelineCompanyName?: string;
   // Dashboard
-  dashboardTab: 'overview' | 'triage';
+  dashboardTab: 'overview' | 'triage' | 'activity';
   dashboardFilter: { companyIds: string[] };
   detailPanel: { ranked: RankedJob; analyses: JobAnalysis[] } | null;
   triageProgress: { triaged: number; total: number };
@@ -105,7 +105,7 @@ export type AppAction =
   | { type: 'profile:parsing' }
   | { type: 'profile:parse-error'; error: string }
   | { type: 'job:progress'; stage: string; provider?: string; total: number; completed: number; cached: number; jobTitle?: string; jobCompany?: string; status?: 'processing' | 'cached' | 'done' }
-  | { type: 'dashboard:set-tab'; tab: 'overview' | 'triage' }
+  | { type: 'dashboard:set-tab'; tab: 'overview' | 'triage' | 'activity' }
   | { type: 'dashboard:set-filter'; companyIds: string[] }
   | { type: 'detail:open'; ranked: RankedJob; analyses: JobAnalysis[] }
   | { type: 'detail:close' }

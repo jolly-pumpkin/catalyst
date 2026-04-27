@@ -39,6 +39,17 @@ export interface KanbanStoreCapability {
 
   /** Get recent activity counts (reviewed, applied, rejected) within the last N days. */
   getRecentActivityCount(sinceDays?: number): { reviewed: number; applied: number; rejected: number };
+
+  /** Get recent kanban moves (excluding 'new' column), ordered by most recent. */
+  getRecentMoves(limit?: number): {
+    jobId: string;
+    title: string;
+    company: string;
+    column: JobKanbanColumn;
+    tags: FeedbackTag[];
+    notes?: string;
+    updatedAt: string;
+  }[];
 }
 
 export function kanbanStorePlugin(): Plugin {
@@ -199,6 +210,24 @@ export function kanbanStorePlugin(): Plugin {
             reviewed += row.cnt;
           }
           return { reviewed, applied, rejected };
+        },
+        getRecentMoves(limit: number = 50) {
+          const rows = db.prepare(
+            `SELECT job_id, job_title, job_company, column_name, tags, notes, updated_at
+             FROM job_kanban
+             WHERE column_name != 'new'
+             ORDER BY updated_at DESC
+             LIMIT ?`
+          ).all(limit) as any[];
+          return rows.map((r) => ({
+            jobId: r.job_id,
+            title: r.job_title ?? 'Untitled',
+            company: r.job_company ?? '',
+            column: r.column_name as JobKanbanColumn,
+            tags: r.tags ? JSON.parse(r.tags) : [],
+            notes: r.notes || undefined,
+            updatedAt: r.updated_at,
+          }));
         },
       } satisfies KanbanStoreCapability);
     },
