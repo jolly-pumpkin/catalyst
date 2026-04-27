@@ -6,6 +6,7 @@ import styles from './NearMissGroup.module.css';
 interface NearMissGroupProps {
   jobs: RankedJob[];
   analyses: JobAnalysis[];
+  kanbanColumns?: Map<string, JobKanbanColumn>;
   nearMissMinMatch?: number;
   nearMissMaxScore?: number;
   onAction?: (jobId: string, column: JobKanbanColumn) => void;
@@ -61,6 +62,7 @@ export function computeSkillGapGroups(
 export function NearMissGroup({
   jobs,
   analyses,
+  kanbanColumns,
   nearMissMinMatch = 60,
   nearMissMaxScore = 70,
   onAction,
@@ -93,6 +95,7 @@ export function NearMissGroup({
                   key={entry.ranked.job.id}
                   ranked={entry.ranked}
                   analyses={entry.analyses}
+                  kanbanColumn={kanbanColumns?.get(entry.ranked.job.id)}
                   onAction={onAction}
                   onOpenDetail={onOpenDetail}
                 />

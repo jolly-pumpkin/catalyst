@@ -64,6 +64,7 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
   const allJobs = entries.map((e) => e.ranked);
   const allAnalyses = entries.flatMap((e) => e.analyses);
   const topPicks = allJobs.filter((j) => j.overallScore >= TOP_PICK_THRESHOLD);
+  const kanbanColumns = new Map(entries.filter((e) => e.kanbanColumn).map((e) => [e.ranked.job.id, e.kanbanColumn!]));
 
   const handleAction = useCallback(async (jobId: string, column: JobKanbanColumn) => {
     if (column === 'rejected' || column === 'not-applying') {
@@ -190,6 +191,7 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
               <NearMissGroup
                 jobs={allJobs}
                 analyses={allAnalyses}
+                kanbanColumns={kanbanColumns}
                 onAction={handleAction}
                 onOpenDetail={handleOpenDetail}
               />
