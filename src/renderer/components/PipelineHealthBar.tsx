@@ -79,7 +79,7 @@ export function PipelineHealthBar({ stageCounts, recentActivity, topRejectionTag
                   key={i}
                   className={styles.scoreBucket}
                   style={{ height: `${(count / maxBucket) * 100}%` }}
-                  title={`${i * 20}-${i * 20 + 19}: ${count} jobs`}
+                  title={`${i * 20}-${i === 4 ? 100 : i * 20 + 19}: ${count} jobs`}
                 />
               ))}
             </div>

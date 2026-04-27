@@ -98,7 +98,9 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
         topCount = count;
       }
     }
-    return topTag && topCount >= 2 ? { tag: topTag, count: topCount } : null;
+    if (!topTag || topCount < 2) return null;
+    const label = FEEDBACK_TAGS.find((t) => t.tag === topTag)?.label ?? topTag;
+    return { tag: label, count: topCount };
   };
 
   const allJobs = entries.map((e) => e.ranked);

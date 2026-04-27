@@ -2,7 +2,7 @@ import React from 'react';
 import type { JobKanbanColumn, CompanySource } from '../../types.js';
 import styles from './DashboardFilters.module.css';
 
-export type SortBy = 'score' | 'company' | 'salary' | 'date';
+export type SortBy = 'score' | 'company' | 'salary';
 
 interface DashboardFiltersProps {
   companies: CompanySource[];
