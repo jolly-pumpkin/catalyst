@@ -4,6 +4,7 @@ import { IPC } from '../../src/shared/ipc-channels.js';
 import { jobSeekerSpec } from '../../src/spec.js';
 import { getBroker, getMainWindow, getModel } from '../main.js';
 import { setCurrentResumeName } from '../events.js';
+import { setPipelineCompanyId } from '../../src/context.js';
 import { log } from '../logger.js';
 import type {
   RankedJob, CandidateProfile, NormalizedJob,
@@ -15,8 +16,9 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
   const broker = getBroker();
   if (!broker) throw new Error('No user selected');
 
-  // Set resume name for trace recording
+  // Set resume name for trace recording and company scope for index-fetcher
   setCurrentResumeName(resumeName);
+  setPipelineCompanyId(companySourceId);
 
   const runner = broker.resolve<PipelineRunner>('pipeline-runner');
   const model = getModel();
@@ -36,6 +38,7 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
       save(runId: string, resumeName: string, model: string,
            iteration: number, durationMs: number, jobs: RankedJob[],
            companySourceId?: string): Promise<void>;
+      saveSummary(runId: string, summary: string): void;
       saveEnrichment(runId: string, data: {
         profile?: CandidateProfile; normalizedJobs?: NormalizedJob[];
         analyses?: JobAnalysis[]; reflectRationale?: string; confidence?: number;
@@ -84,6 +87,23 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
 
     log.info('pipeline', 'Pipeline complete', { runId, jobCount: jobs.length, iteration: result.iteration, durationMs });
 
+    // Generate AI summary (non-critical)
+    try {
+      const llm = broker.resolve<{ generate(prompt: string, opts?: { temperature?: number }): Promise<string> }>('llm.generate');
+      const profileStore = broker.resolve<{ get(): import('../../src/types.js').CandidateProfile | null }>('profile.store');
+      const profileData = profileStore.get();
+      if (profileData && jobs.length > 0) {
+        const { runSummaryPrompt } = await import('../../src/prompts/run-summary.js');
+        const summaryText = await llm.generate(runSummaryPrompt(jobs, profileData), { temperature: 0.3 });
+        store.saveSummary(runId, summaryText);
+        if (win && !win.isDestroyed()) {
+          win.webContents.send(IPC.PIPELINE_RUN_SUMMARY, { runId, summary: summaryText });
+        }
+      }
+    } catch (err) {
+      log.warn('pipeline', 'Failed to generate run summary', { runId, error: String(err) });
+    }
+
     return { runId, jobs, iteration: result.iteration, durationMs };
   } catch (err) {
     log.error('pipeline', 'Pipeline failed', { runId, error: String(err) });
@@ -91,6 +111,8 @@ async function executePipeline(resumeText: string, resumeName: string, companySo
       win.webContents.send(IPC.PIPELINE_ERROR, { error: String(err) });
     }
     throw err;
+  } finally {
+    setPipelineCompanyId(undefined);
   }
 }
 

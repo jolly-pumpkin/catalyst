@@ -48,6 +48,8 @@ const api = {
     getJobs: (id: string) => ipcRenderer.invoke(IPC.RESULTS_GET_JOBS, id),
     getAllJobs: (companyIds?: string[]) =>
       ipcRenderer.invoke(IPC.RESULTS_GET_ALL_JOBS, companyIds),
+    getLatestSummary: () =>
+      ipcRenderer.invoke(IPC.RESULTS_GET_LATEST_SUMMARY),
   },
 
   dashboard: {
@@ -133,6 +135,11 @@ const api = {
       const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => cb(payload);
       ipcRenderer.on(IPC.PIPELINE_JOB_PROGRESS, listener);
       return () => { ipcRenderer.removeListener(IPC.PIPELINE_JOB_PROGRESS, listener); };
+    },
+    runSummary: (cb: (payload: { runId: string; summary: string }) => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, payload: { runId: string; summary: string }) => cb(payload);
+      ipcRenderer.on(IPC.PIPELINE_RUN_SUMMARY, handler);
+      return () => { ipcRenderer.removeListener(IPC.PIPELINE_RUN_SUMMARY, handler); };
     },
   },
 };

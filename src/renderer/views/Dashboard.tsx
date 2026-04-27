@@ -11,6 +11,7 @@ import { PipelineHealthBar } from '../components/PipelineHealthBar.js';
 import { DashboardFilters } from '../components/DashboardFilters.js';
 import type { SortBy } from '../components/DashboardFilters.js';
 import { ActivityLog } from '../components/ActivityLog.js';
+import { RunSummary } from '../components/RunSummary.js';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
@@ -70,6 +71,14 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
       setCompanies(companyList);
       setStageCounts(stageData);
       setRecentActivity(activityData);
+
+      // Fetch latest run summary if not already present
+      try {
+        const summary = await api.results.getLatestSummary();
+        if (summary) dispatch({ type: 'summary:received', summary });
+      } catch {
+        // summary fetch is non-critical
+      }
     } catch {
       // API may not be available yet
     } finally {
@@ -227,6 +236,12 @@ export function Dashboard({ state, dispatch }: DashboardProps) {
           {/* Overview Tab */}
           {state.dashboardTab === 'overview' && (
             <>
+              {state.runSummary && (
+                <RunSummary
+                  summary={state.runSummary}
+                  onDismiss={() => dispatch({ type: 'summary:dismiss' })}
+                />
+              )}
               {stageCounts && recentActivity && (
                 <PipelineHealthBar
                   stageCounts={stageCounts}

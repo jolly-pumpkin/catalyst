@@ -46,4 +46,6 @@ export const IPC = {
   PIPELINE_ERROR: 'pipeline:error',
   INDEX_NEW_JOBS: 'index:new-jobs',
   PIPELINE_JOB_PROGRESS: 'pipeline:job-progress',
+  PIPELINE_RUN_SUMMARY: 'pipeline:run-summary',
+  RESULTS_GET_LATEST_SUMMARY: 'results:latest-summary',
 } as const;

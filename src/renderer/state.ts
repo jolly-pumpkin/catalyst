@@ -77,6 +77,7 @@ export interface AppState {
   dashboardFilter: { companyIds: string[] };
   detailPanel: { ranked: RankedJob; analyses: JobAnalysis[] } | null;
   triageProgress: { triaged: number; total: number };
+  runSummary: string | null;
 }
 
 export type AppAction =
@@ -109,7 +110,9 @@ export type AppAction =
   | { type: 'dashboard:set-filter'; companyIds: string[] }
   | { type: 'detail:open'; ranked: RankedJob; analyses: JobAnalysis[] }
   | { type: 'detail:close' }
-  | { type: 'dashboard:update-triage'; triaged: number; total: number };
+  | { type: 'dashboard:update-triage'; triaged: number; total: number }
+  | { type: 'summary:received'; summary: string }
+  | { type: 'summary:dismiss' };
 
 export const initialState: AppState = {
   view: 'user-selection',
@@ -126,6 +129,7 @@ export const initialState: AppState = {
   dashboardFilter: { companyIds: [] },
   detailPanel: null,
   triageProgress: { triaged: 0, total: 0 },
+  runSummary: null,
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -274,6 +278,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'dashboard:update-triage':
       return { ...state, triageProgress: { triaged: action.triaged, total: action.total } };
+
+    case 'summary:received':
+      return { ...state, runSummary: action.summary };
+
+    case 'summary:dismiss':
+      return { ...state, runSummary: null };
 
     default:
       return state;

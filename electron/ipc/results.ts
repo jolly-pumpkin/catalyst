@@ -33,4 +33,17 @@ export function registerResultsHandlers(): void {
     const query = broker.resolve<{ getJobs(runId: string): Promise<RankedJob[]> }>('results.query');
     return query.getJobs(id);
   });
+
+  ipcMain.handle(IPC.RESULTS_GET_LATEST_SUMMARY, async () => {
+    const broker = getBroker();
+    if (!broker) throw new Error('No user selected');
+    const query = broker.resolve<{
+      getLatestRunId(): Promise<string | null>;
+      getRunDetail(runId: string): Promise<{ summary?: string } | null>;
+    }>('results.query');
+    const runId = await query.getLatestRunId();
+    if (!runId) return null;
+    const detail = await query.getRunDetail(runId);
+    return detail?.summary ?? null;
+  });
 }

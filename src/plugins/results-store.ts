@@ -49,6 +49,9 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
       if (!colNames.has('company_source_id')) {
         db.exec(`ALTER TABLE runs ADD COLUMN company_source_id TEXT`);
       }
+      if (!colNames.has('summary')) {
+        db.exec(`ALTER TABLE runs ADD COLUMN summary TEXT`);
+      }
 
       db.exec(`CREATE TABLE IF NOT EXISTS ranked_jobs (
         run_id TEXT NOT NULL,
@@ -93,6 +96,9 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
         ) {
           saveTransaction(runId, resumeName, model, iteration, durationMs, jobs, companySourceId ?? null);
         },
+        saveSummary(runId: string, summary: string): void {
+          db.prepare('UPDATE runs SET summary = ? WHERE id = ?').run(summary, runId);
+        },
         saveEnrichment(runId: string, data: {
           profile?: CandidateProfile;
           normalizedJobs?: NormalizedJob[];
@@ -115,12 +121,12 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
       });
 
       ctx.provide('results.query', {
-        async listRuns(): Promise<RunRecord[]> {
+        async listRuns(): Promise<(RunRecord & { summary?: string })[]> {
           return db.prepare(
             `SELECT id, created_at as createdAt, resume_name as resumeName,
-                    iteration, duration_ms as durationMs, model
+                    iteration, duration_ms as durationMs, model, summary
              FROM runs ORDER BY created_at DESC`
-          ).all() as RunRecord[];
+          ).all() as (RunRecord & { summary?: string })[];
         },
         async getJobs(runId: string): Promise<RankedJob[]> {
           const rows = db.prepare(
@@ -133,11 +139,12 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
             `SELECT id, created_at as createdAt, resume_name as resumeName,
                     iteration, duration_ms as durationMs, model,
                     profile_json, normalized_jobs_json, analyses_json,
-                    reflect_rationale, confidence
+                    reflect_rationale, confidence, summary
              FROM runs WHERE id = ?`
           ).get(runId) as (RunRecord & {
             profile_json?: string; normalized_jobs_json?: string;
             analyses_json?: string; reflect_rationale?: string; confidence?: number;
+            summary?: string;
           }) | null;
           if (!run) return null;
           const jobRows = db.prepare(
@@ -152,6 +159,7 @@ export function resultsStorePlugin(options: ResultsStoreOptions = {}): Plugin {
             analyses: run.analyses_json ? JSON.parse(run.analyses_json) as JobAnalysis[] : undefined,
             reflectRationale: run.reflect_rationale ?? undefined,
             confidence: run.confidence ?? undefined,
+            summary: run.summary ?? undefined,
           };
         },
         async getLatestRunId(): Promise<string | null> {

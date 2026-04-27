@@ -116,6 +116,12 @@ function Shell() {
       }),
     );
 
+    unsubs.push(
+      api.on.runSummary((payload: any) => {
+        dispatch({ type: 'summary:received', summary: payload.summary });
+      }),
+    );
+
     return () => { unsubs.forEach((fn) => fn()); };
   }, [api]);
 
