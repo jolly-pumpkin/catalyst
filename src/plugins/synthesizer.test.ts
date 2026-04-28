@@ -34,7 +34,7 @@ describe('synthesizer plugin', () => {
         remote: true, skills: ['TypeScript'], description: '', url: '', source: 'indeed',
       }],
       'parse-profile': {
-        name: 'Jane', skills: ['TypeScript'], yearsExperience: 5,
+        name: 'Jane', skills: { 'Programming': ['TypeScript'] }, yearsExperience: 5,
         titles: ['Engineer'], preferredLocations: ['Remote'], remotePreference: 'remote' as const,
       },
     });

@@ -1,13 +1,13 @@
 import type { RawJob } from '../types.js';
 
-export function jobNormalizerPrompt(jobs: RawJob[]): string {
-  return `You are a job data normalizer. Clean and structure the following job postings.
+export function jobNormalizerPrompt(job: RawJob): string {
+  return `You are a job data normalizer. Clean and structure the following job posting.
 
-For each job, extract skills mentioned in the description and determine if it is remote.
+Extract skills mentioned in the description and determine if it is remote.
 
-Return ONLY a JSON array — no markdown, no explanation:
-[{
-  "id": "same id as input",
+Return ONLY a JSON object — no markdown, no explanation:
+{
+  "id": "${job.id}",
   "title": "cleaned title",
   "company": "company name",
   "location": "city/state or Remote",
@@ -16,8 +16,8 @@ Return ONLY a JSON array — no markdown, no explanation:
   "description": "first 200 chars of cleaned description",
   "url": "same url",
   "source": "same source"
-}]
+}
 
-JOBS:
-${JSON.stringify(jobs, null, 2)}`;
+JOB:
+${JSON.stringify(job, null, 2)}`;
 }

@@ -6,9 +6,9 @@ import { salaryEstimatorPlugin } from './salary-estimator.js';
 import type { JobAnalysis } from '../types.js';
 
 const mockLLM = (variant: string) => ({
-  generate: async () => JSON.stringify([
+  generate: async () => JSON.stringify(
     { jobId: 'j1', variant, score: 85, reasoning: 'Good match', signals: ['TypeScript'] },
-  ]),
+  ),
 });
 
 const input = {
@@ -17,7 +17,7 @@ const input = {
     remote: true, skills: ['TypeScript'], description: '', url: '', source: 'indeed',
   }],
   'parse-profile': {
-    name: 'Jane', skills: ['TypeScript'], yearsExperience: 5,
+    name: 'Jane', skills: { 'Programming': ['TypeScript'] }, yearsExperience: 5,
     titles: ['Engineer'], preferredLocations: ['Remote'], remotePreference: 'remote' as const,
   },
 };

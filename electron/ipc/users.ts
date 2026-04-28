@@ -22,6 +22,15 @@ export function registerUserHandlers(config: CatalystConfig): void {
     return manager.create(name);
   });
 
+  ipcMain.handle(IPC.USERS_CURRENT, () => {
+    const broker = getUserBroker();
+    if (!broker) throw new Error('User broker not initialized');
+    const manager = broker.resolve<UserManagerCapability>('user.manager');
+    const id = manager.getCurrentId();
+    if (!id) return null;
+    return manager.get(id) ?? null;
+  });
+
   ipcMain.handle(IPC.USERS_SELECT, async (_event, id: string) => {
     const userBroker = getUserBroker();
     if (!userBroker) throw new Error('User broker not initialized');

@@ -56,6 +56,13 @@
   border-color: var(--accent);
 }
 
+.hint {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;

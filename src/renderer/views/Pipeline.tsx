@@ -56,7 +56,7 @@ export function Pipeline({ state, dispatch }: PipelineProps) {
             <span className={styles.profileLabel}>Titles</span>
             <span className={styles.profileValue}>{state.profile.titles.join(', ')}</span>
             <span className={styles.profileLabel}>Skills</span>
-            <span className={styles.profileValue}>{state.profile.skills.slice(0, 8).join(', ')}{state.profile.skills.length > 8 ? ' ...' : ''}</span>
+            <span className={styles.profileValue}>{(() => { const all = Object.values(state.profile.skills).flat(); return all.slice(0, 8).join(', ') + (all.length > 8 ? ' ...' : ''); })()}</span>
             <span className={styles.profileLabel}>Remote</span>
             <span className={styles.profileValue}>{state.profile.remotePreference}</span>
           </div>

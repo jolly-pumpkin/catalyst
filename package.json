@@ -1,7 +1,7 @@
 {
   "name": "catalyst",
+  "version": "0.1.0",
   "main": ".vite/build/main.js",
-  "type": "module",
   "private": true,
   "scripts": {
     "start": "electron-forge start",

@@ -65,6 +65,16 @@ export function Toolbar({ state, dispatch }: ToolbarProps) {
               {users.length === 0 && (
                 <div className={styles.dropdownEmpty}>No users</div>
               )}
+              <div className={styles.dropdownDivider} />
+              <button
+                className={styles.dropdownItem}
+                onClick={() => {
+                  dispatch({ type: 'user:new-profile' });
+                  setDropdownOpen(false);
+                }}
+              >
+                + New Profile
+              </button>
             </div>
           )}
         </div>

@@ -6,13 +6,11 @@ import type { NormalizedJob } from '../types.js';
 describe('job-normalizer plugin', () => {
   it('normalizes raw jobs via LLM', async () => {
     const mockLLM = {
-      generate: async () => JSON.stringify([
-        {
-          id: 'indeed-1', title: 'Senior TS Engineer', company: 'Acme',
-          location: 'Remote', remote: true, skills: ['TypeScript', 'React'],
-          description: 'Great role for TS devs', url: 'https://x.com', source: 'indeed',
-        },
-      ] satisfies NormalizedJob[]),
+      generate: async () => JSON.stringify({
+        id: 'indeed-1', title: 'Senior TS Engineer', company: 'Acme',
+        location: 'Remote', remote: true, skills: ['TypeScript', 'React'],
+        description: 'Great role for TS devs', url: 'https://x.com', source: 'indeed',
+      } satisfies NormalizedJob),
     };
 
     const { broker } = createTestBroker();

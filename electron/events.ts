@@ -23,7 +23,7 @@ export function wireBrokerEvents(broker: Broker, getWindow: () => BrowserWindow 
   const send = (channel: string, data: unknown) => {
     const win = getWindow();
     if (win && !win.isDestroyed()) {
-      send(channel, data);
+      win.webContents.send(channel, data);
     }
   };
 
@@ -58,6 +58,12 @@ export function wireBrokerEvents(broker: Broker, getWindow: () => BrowserWindow 
   on(PROVIDER_EVENTS.SELECTED, ({ stageId, providerId }: any) => {
     send(IPC.PIPELINE_PROVIDER_UPDATE, {
       type: 'start', stageId, providerId,
+    });
+  });
+
+  on(PROVIDER_EVENTS.COMPLETE, ({ stageId, providerId, durationMs }: any) => {
+    send(IPC.PIPELINE_PROVIDER_UPDATE, {
+      type: 'done', stageId, providerId, durationMs,
     });
   });
 
@@ -103,6 +109,7 @@ export function wireBrokerEvents(broker: Broker, getWindow: () => BrowserWindow 
 
   on(PIPELINE_EVENTS.ITERATION_STARTED, (payload: any) => {
     trace.recordEvent(payload.runId, PIPELINE_EVENTS.ITERATION_STARTED, payload);
+    send(IPC.PIPELINE_ITERATION, { iteration: payload.iteration });
   });
 
   for (const event of [
@@ -116,6 +123,12 @@ export function wireBrokerEvents(broker: Broker, getWindow: () => BrowserWindow 
       trace.recordEvent(payload.runId, event, payload);
     });
   }
+
+  // --- Per-job progress events → renderer ---
+
+  on('job:progress', (payload: any) => {
+    send(IPC.PIPELINE_JOB_PROGRESS, payload);
+  });
 
   on('llm:call-start', (payload: any) => {
     if (currentRunId) {

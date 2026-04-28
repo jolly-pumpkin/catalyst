@@ -1,5 +1,6 @@
 import type { Plugin } from 'rhodium-core';
 import type { CandidateProfile, RawJob, ReflectOutput } from '../types.js';
+import { getPipelineCompanyId } from '../context.js';
 
 interface RemotiveJob {
   id: number;
@@ -27,6 +28,9 @@ export function remotiveFetcherPlugin(): Plugin {
         'parse-profile': CandidateProfile;
         refinements?: ReflectOutput['searchRefinements'];
       }): Promise<RawJob[]> => {
+        // Skip external API when pipeline is scoped to a specific company
+        if (getPipelineCompanyId()) return [];
+
         const profile = input['parse-profile'];
         const refinements = input.refinements;
         const search = [

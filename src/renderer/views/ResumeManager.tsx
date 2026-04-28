@@ -64,7 +64,7 @@ export function ResumeManager({ state, dispatch }: ResumeManagerProps) {
             <div className={styles.profileSummary}>
               {state.profile.name} &middot; {state.profile.titles.join(' / ')} &middot; {state.profile.yearsExperience}y
               <br />
-              Skills: {state.profile.skills.slice(0, 6).join(', ')}{state.profile.skills.length > 6 ? ' ...' : ''}
+              Skills: {(() => { const all = Object.values(state.profile.skills).flat(); return all.slice(0, 6).join(', ') + (all.length > 6 ? ' ...' : ''); })()}
             </div>
           )}
         </div>

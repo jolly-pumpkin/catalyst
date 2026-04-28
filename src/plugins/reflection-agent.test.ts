@@ -26,7 +26,7 @@ describe('reflection-agent plugin', () => {
     const result = await reflect({
       synthesize: [],
       'parse-profile': {
-        name: 'Jane', skills: ['TypeScript'], yearsExperience: 5,
+        name: 'Jane', skills: { 'Programming': ['TypeScript'] }, yearsExperience: 5,
         titles: ['Engineer'], preferredLocations: ['Remote'], remotePreference: 'remote' as const,
       },
     });

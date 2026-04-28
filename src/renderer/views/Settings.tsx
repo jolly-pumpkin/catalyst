@@ -8,6 +8,13 @@ interface SettingsData {
   indexIntervalHours?: number;
 }
 
+interface OllamaModel {
+  name: string;
+  size: number;
+  parameterSize?: string;
+  quantization?: string;
+}
+
 export function Settings() {
   const api = useApi();
   const [model, setModel] = useState('');
@@ -15,6 +22,9 @@ export function Settings() {
   const [interval, setInterval] = useState('');
   const [original, setOriginal] = useState<SettingsData>({});
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [models, setModels] = useState<OllamaModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsError, setModelsError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +35,24 @@ export function Settings() {
       setInterval(String(s.indexIntervalHours ?? ''));
       setOriginal(s);
     });
+    return () => { cancelled = true; };
+  }, [api]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setModelsLoading(true);
+    setModelsError(null);
+    api.ollama.models()
+      .then((list: OllamaModel[]) => {
+        if (cancelled) return;
+        setModels(list);
+        setModelsLoading(false);
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setModelsError(err.message);
+        setModelsLoading(false);
+      });
     return () => { cancelled = true; };
   }, [api]);
 
@@ -47,6 +75,11 @@ export function Settings() {
     }
   }
 
+  function formatSize(bytes: number): string {
+    const gb = bytes / 1e9;
+    return gb >= 1 ? `${gb.toFixed(1)} GB` : `${(bytes / 1e6).toFixed(0)} MB`;
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -56,12 +89,32 @@ export function Settings() {
       <div className={styles.card}>
         <div className={styles.field}>
           <label className={styles.label}>Ollama Model</label>
-          <input
-            className={styles.input}
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="gemma4"
-          />
+          {modelsLoading ? (
+            <span className={styles.hint}>Loading models...</span>
+          ) : modelsError ? (
+            <>
+              <input
+                className={styles.input}
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="gemma4"
+              />
+              <span className={styles.hint}>Could not reach Ollama — enter model name manually</span>
+            </>
+          ) : (
+            <select
+              className={styles.input}
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+            >
+              {!model && <option value="">Select a model...</option>}
+              {models.map((m) => (
+                <option key={m.name} value={m.name}>
+                  {m.name} ({formatSize(m.size)}{m.parameterSize ? `, ${m.parameterSize}` : ''}{m.quantization ? `, ${m.quantization}` : ''})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className={styles.field}>

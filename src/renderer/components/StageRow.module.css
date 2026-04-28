@@ -73,6 +73,55 @@
   font-size: 11px;
 }
 
+/* Live elapsed counter */
+.elapsed {
+  font-size: 11px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* Job progress within a stage */
+.jobProgress {
+  padding: 4px 12px 8px 30px;
+}
+
+.jobProgressBar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.jobProgressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.jobProgressText {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.jobCached {
+  color: var(--success);
+}
+
+.jobCurrent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* CSS spinner animation */
 @keyframes spin {
   to { transform: rotate(360deg); }

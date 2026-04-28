@@ -4,7 +4,7 @@ export function profileParserPrompt(resumeText: string): string {
 Return ONLY a JSON object with this exact shape (no markdown, no explanation):
 {
   "name": "string",
-  "skills": ["array", "of", "skills"],
+  "skills": { "Category Name": ["skill1", "skill2"], "Another Category": ["skill3"] },
   "yearsExperience": number,
   "titles": ["most recent title first"],
   "preferredLocations": ["city or Remote"],

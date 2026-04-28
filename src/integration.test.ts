@@ -21,7 +21,7 @@ function createMockLLM() {
     generate: async (prompt: string): Promise<string> => {
       if (prompt.includes('resume parser')) {
         return JSON.stringify({
-          name: 'Jane Doe', skills: ['TypeScript', 'React'], yearsExperience: 7,
+          name: 'Jane Doe', skills: { 'Programming': ['TypeScript', 'React'] }, yearsExperience: 7,
           titles: ['Senior Engineer'], preferredLocations: ['Remote'],
           remotePreference: 'remote', salaryExpectation: { min: 180000, max: 220000, currency: 'USD' },
         } satisfies CandidateProfile);

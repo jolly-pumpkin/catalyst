@@ -83,6 +83,12 @@
   color: var(--accent);
 }
 
+.dropdownDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 .dropdownEmpty {
   padding: 8px 12px;
   color: var(--text-secondary);

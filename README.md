@@ -1,6 +1,6 @@
 # Catalyst
 
-Personal job indexer and analysis pipeline built on [Rhodium](../rhodium/) — a capability-contract composition framework. Add career pages for companies you're interested in, Catalyst indexes their open roles on a schedule, then runs LLM analysis passes (skill matching, culture fit, salary estimation) against your resume to produce a ranked list. No plugin knows about any other plugin.
+Personal job indexer and analysis pipeline built on [Rhodium](../rhodium/) — a capability-contract composition framework. An Electron desktop app where you add career pages for companies you're interested in, Catalyst indexes their open roles on a schedule, then runs LLM analysis passes (skill matching, culture fit, salary estimation) against your resume to produce a ranked list with a per-company kanban board. No plugin knows about any other plugin.
 
 ## Why
 
@@ -12,34 +12,24 @@ The architecture is the inverse of a hardcoded agent graph. Plugins provide and 
 
 ### 1. Add companies you care about
 
-```bash
-bun run src/index.ts companies add https://anthropic.com/careers
-bun run src/index.ts companies add https://stripe.com/jobs
-```
-
-Catalyst auto-detects the ATS (Greenhouse, Lever, Ashby, or Workable) and stores the company in a local SQLite database.
+In the Companies view, paste a career page URL (e.g. `https://anthropic.com/careers`). Catalyst auto-detects the ATS (Greenhouse, Lever, Ashby, or Workable) and stores the company in a local SQLite database.
 
 ### 2. Jobs are indexed automatically
 
-A background indexer pulls open roles from each company's ATS API on a configurable interval (default: every 6 hours). Jobs are stored locally, deduped, and marked inactive when they disappear from the board.
-
-```bash
-# Or trigger a manual index
-bun run src/index.ts index
-```
+A background indexer pulls open roles from each company's ATS API on a configurable interval (default: every 6 hours). Jobs are stored locally, deduped, and marked inactive when they disappear from the board. Native notifications fire when new jobs are found.
 
 ### 3. Run the analysis pipeline
 
-```bash
-bun run src/index.ts resume.txt
-```
+Select a resume from the Resume Manager and run the pipeline. It reads from your local job index (plus supplementary live sources like Remotive), then runs through LLM analysis to produce ranked results.
 
-The pipeline reads from your local job index (plus supplementary live sources like Remotive), then runs through LLM analysis to produce ranked results.
+### 4. Triage with kanban
+
+Each company gets a 5-column kanban board: **New → Looking At → Applying → Rejected / Not Applying**. Jobs land in "New" when a pipeline run completes. Drag-and-drop to move cards. Moving to Rejected or Not Applying captures feedback (tags + optional notes) that feeds back into the reflection agent on subsequent runs.
 
 ## Pipeline
 
 ```
-resume.txt
+resume
     │
     ▼
 ┌─────────────┐
@@ -71,7 +61,8 @@ resume.txt
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) (v1.3+)
+- [Node.js](https://nodejs.org/) (for Electron)
+- [Bun](https://bun.sh/) (package management and test runner)
 - [Ollama](https://ollama.ai/) running locally on port 11434
 - A model pulled in Ollama (default: `gemma4`)
 
@@ -87,140 +78,93 @@ Rhodium packages must be available at `../rhodium/packages/*` (linked via `file:
 bun install
 ```
 
-## Usage
-
-### Company management
+## Running
 
 ```bash
-# Add a company (auto-detects ATS)
-bun run src/index.ts companies add https://anthropic.com/careers
-
-# List watched companies
-bun run src/index.ts companies list
-
-# Remove a company (also deletes its indexed jobs)
-bun run src/index.ts companies remove <id>
-
-# Enable/disable without removing
-bun run src/index.ts companies enable <id>
-bun run src/index.ts companies disable <id>
+npm start             # electron-forge start (dev mode with HMR)
+npm run build         # electron-forge make (production build)
+npm run package       # electron-forge package
 ```
 
-Supported ATS platforms: **Greenhouse**, **Lever**, **Ashby**, **Workable**. Just provide any career page URL and Catalyst will probe the APIs to detect which one the company uses.
-
-### Indexing
-
-```bash
-# Index all enabled companies now
-bun run src/index.ts index
-
-# Index a single company
-bun run src/index.ts index <company-id>
-```
-
-The background indexer also runs automatically on a configurable interval (default: 6 hours) while the TUI is open.
-
-### Running the pipeline
-
-```bash
-# TUI with interactive file picker
-bun run src/index.ts
-
-# Run directly on a resume file
-bun run src/index.ts resume.txt
-
-# Override the LLM model
-bun run src/index.ts --model gemma3:4b
-```
-
-Supported resume formats: `.txt`, `.md`, `.pdf`, `.docx`
-
-### TUI views
-
-While the TUI is running, press:
-- `p` — pipeline progress
-- `r` — results
-- `h` — run history
-- `c` — company management (add, remove, toggle, index)
-- `q` — quit
+Override the LLM model with `OLLAMA_MODEL` in `.env`.
 
 ## Testing
 
 ```bash
-bun test
+bun test              # runs vitest
 ```
 
-Tests use `createTestBroker()` from `rhodium-testing` to test each plugin in isolation with mock capabilities. The integration test runs the full pipeline with a mock LLM provider and a seeded in-memory job index.
+Tests use `createTestBroker()` from `rhodium-testing` to test each plugin in isolation with mock capabilities.
+
+## App Views
+
+- **Companies** — add/remove career page URLs, toggle indexing, trigger manual index
+- **Kanban** — per-company 5-column drag-and-drop board for triaging jobs
+- **Pipeline** — stage execution progress during a run
+- **Results** — ranked jobs with composite scores
+- **Job Detail** — full job detail with per-analyzer breakdowns
+- **Profile** — parsed candidate profile from your resume
+- **History** — browse past pipeline runs
+- **Resume Manager** — manage resume files
+- **Settings** — app configuration
 
 ## Project Structure
 
 ```
+electron/
+  main.ts               # Electron entry: window, broker setup, IPC registration
+  preload.ts            # contextBridge → typed window.catalyst API
+  events.ts             # broker events → renderer push via webContents.send
+  scheduler.ts          # background index timer + native notifications
+  ipc/                  # IPC handler modules (users, pipeline, companies, kanban, etc.)
 src/
-  index.ts                  # broker wiring, CLI subcommands, pipeline execution
-  capabilities.ts           # defineCapability() typed contracts
-  types.ts                  # shared interfaces
-  spec.ts                   # pipeline spec (6 stages + reflection loop)
-  llm-parse.ts              # shared LLM JSON response parser
-  input.ts                  # config loading, resume file reading
-  plugins/
-    ollama-provider.ts      # Ollama HTTP wrapper → llm.generate
-    profile-parser.ts       # LLM: resume text → CandidateProfile
-    catalog-db.ts           # shared SQLite database for indexer
-    ats-detector.ts         # probes ATS APIs to detect company platform → ats.detect
-    company-store.ts        # CRUD for watched companies → company.store
-    job-index-store.ts      # SQLite storage for indexed jobs → job.index
-    job-indexer.ts           # background crawler, fetches ATS APIs → indexer.run
-    index-fetcher.ts        # reads from local index → jobs.fetch (priority 90)
-    remotive-fetcher.ts     # live Remotive API → jobs.fetch (priority 60)
-    job-normalizer.ts       # LLM: dedup/standardize → jobs.normalize
-    skill-matcher.ts        # LLM: technical skill scoring → jobs.analyze (priority 100)
-    culture-fit-analyzer.ts # LLM: culture/values scoring → jobs.analyze (priority 90)
-    salary-estimator.ts     # LLM: compensation fit scoring → jobs.analyze (priority 80)
-    synthesizer.ts          # LLM: merge analyses → ranked list → jobs.synthesize
-    reflection-agent.ts     # LLM: evaluate + refine → jobs.reflect + jobs.search-complete
-    results-store.ts        # SQLite persistence → results.store + results.query
-  prompts/                  # prompt templates for each LLM plugin
-  tui/                      # ink (React for CLIs) views
-  fixtures/                 # sample data
+  platform.ts           # Node compatibility: openDatabase, readFileText, etc.
+  context.ts            # CatalystContext — per-user DB paths, docs folder
+  capabilities.ts       # defineCapability calls for all contracts
+  types.ts              # shared interfaces
+  spec.ts               # pipeline spec (6 stages + reflection loop)
+  input.ts              # config loading, resume file parsing
+  llm-parse.ts          # LLM JSON response parser
+  shared/
+    ipc-channels.ts     # IPC channel name constants
+    window.d.ts         # window.catalyst type declaration
+  plugins/              # all Rhodium plugins (see CLAUDE.md for full listing)
+  prompts/              # prompt templates for each LLM plugin
+  renderer/
+    main.tsx            # React root mount
+    App.tsx             # layout shell: Toolbar + NavRail + content + StatusBar
+    api.ts              # React context wrapping window.catalyst
+    state.ts            # AppState/AppAction/appReducer (useReducer pattern)
+    views/              # Companies, Kanban, Pipeline, Results, etc.
+    components/         # NavRail, Toolbar, StatusBar, ScoreBar, KanbanCard, etc.
+    styles/             # CSS modules + global theme
+  fixtures/             # sample data
 ```
+
+## Architecture
+
+**Process model:**
+- **Main process** — Rhodium broker, all plugins, pipeline runner, background indexer
+- **Renderer process** — React UI, communicates via IPC bridge (`window.catalyst`)
+- **Preload** — `contextBridge` exposes a typed API; renderer is sandboxed (no `nodeIntegration`)
+
+**Multi-user:** each user gets isolated data at `~/.catalyst/users/<name>/` with separate databases for catalog, results, and traces, plus a personal `docs/` folder for resumes. A global index at `~/.catalyst/users-index.db` maps usernames to data dirs.
 
 ## Key Patterns
 
-**Personal indexer** — users add career page URLs, the system auto-detects the ATS, indexes jobs on a schedule, and stores them locally in SQLite. The pipeline reads from this local index rather than hitting APIs live every run.
-
-**ATS auto-detection** — given any career page URL, probes Greenhouse, Lever, Ashby, and Workable APIs in parallel to find the right one. No manual configuration needed.
-
 **Capability contracts** — every inter-plugin boundary is a typed `defineCapability<T>(name)` call. Pipeline stage capabilities are functions; non-pipeline capabilities (like `llm.generate`) are objects.
+
+**IPC bridge** — renderer calls `window.catalyst.X.method()` → `ipcMain.handle()` resolves the capability from the broker.
+
+**Event push** — broker events → `webContents.send()` → renderer `ipcRenderer.on()` → dispatch to React reducer.
 
 **Fanout + error isolation** — `jobs.fetch` and `jobs.analyze` resolve multiple providers in parallel. `errorPolicy: 'skip'` means one provider failing doesn't crash the stage.
 
-**Plugin isolation** — plugins never import each other. They resolve capabilities from the broker at runtime via `ctx.resolve('capability.name')`.
+**Plugin isolation** — plugins never import each other. They resolve capabilities from the broker at runtime.
 
-**Reflection loop** — the pipeline iterates up to 3 times. The reflection agent evaluates result quality and either signals completion (confidence >= 0.8) or suggests search refinements.
+**Reflection loop** — the pipeline iterates up to 3 times. The reflection agent evaluates result quality and either signals completion (confidence >= 0.8) or suggests search refinements. Kanban rejection feedback is included in the prompt.
 
 **Derived topology** — register a new fetcher plugin that provides `jobs.fetch` and it automatically joins the fanout. No wiring code changes needed.
-
-## Configuration
-
-Config is stored at `~/.catalyst/config.json` (auto-created on first run):
-
-```json
-{
-  "docsFolder": "~/.catalyst/docs",
-  "ollamaModel": "gemma4",
-  "ollamaUrl": "http://localhost:11434",
-  "indexIntervalHours": 6
-}
-```
-
-Override the model per-run with `--model` or set `OLLAMA_MODEL` in `.env`.
-
-## Data Storage
-
-- `~/.catalyst/config.json` — user configuration
-- `~/.catalyst/catalyst.db` — company sources and indexed jobs
-- `~/.catalyst/results.db` — pipeline run history and ranked results
-- `~/.catalyst/docs/` — default resume folder
 
 ## License
 

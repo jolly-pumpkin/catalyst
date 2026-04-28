@@ -23,6 +23,17 @@ export function getCatalystContext(): CatalystContext {
   return CURRENT_CONTEXT;
 }
 
+/** Per-run pipeline scope — set before each pipeline execution, cleared after. */
+let PIPELINE_COMPANY_ID: string | undefined;
+
+export function setPipelineCompanyId(id: string | undefined): void {
+  PIPELINE_COMPANY_ID = id;
+}
+
+export function getPipelineCompanyId(): string | undefined {
+  return PIPELINE_COMPANY_ID;
+}
+
 export function buildUserContext(userName: string): CatalystContext {
   const userDataDir = join(homedir(), '.catalyst', 'users', userName);
   return {

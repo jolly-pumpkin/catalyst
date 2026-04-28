@@ -8,7 +8,7 @@ describe('profile-parser plugin', () => {
     const mockLLM = {
       generate: async (_prompt: string) => JSON.stringify({
         name: 'Jane Doe',
-        skills: ['TypeScript', 'React', 'Node.js'],
+        skills: { 'Programming Languages': ['TypeScript'], 'Frameworks': ['React'], 'Runtimes': ['Node.js'] },
         yearsExperience: 7,
         titles: ['Senior Engineer'],
         preferredLocations: ['Remote'],
@@ -30,7 +30,7 @@ describe('profile-parser plugin', () => {
     const profile = await parse({ resumeText: 'Jane Doe, Senior Engineer...', resumeName: 'jane.txt' });
 
     expect(profile.name).toBe('Jane Doe');
-    expect(profile.skills).toContain('TypeScript');
+    expect(Object.values(profile.skills).flat()).toContain('TypeScript');
     expect(profile.remotePreference).toBe('remote');
   });
 });

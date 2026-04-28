@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { StageState, ProviderState } from '../state.js';
+import type { StageState, ProviderState, JobProgressState } from '../state.js';
 import styles from './StageRow.module.css';
 
 function fmtDuration(ms?: number): string {
@@ -62,6 +62,29 @@ function ProviderRow({ provider }: { provider: ProviderState }) {
   );
 }
 
+function JobProgress({ progress }: { progress: JobProgressState }) {
+  const pct = progress.total > 0
+    ? Math.round((progress.completed / progress.total) * 100)
+    : 0;
+
+  return (
+    <div className={styles.jobProgress}>
+      <div className={styles.jobProgressBar}>
+        <div className={styles.jobProgressFill} style={{ width: `${pct}%` }} />
+      </div>
+      <div className={styles.jobProgressText}>
+        {progress.completed}/{progress.total} jobs
+        {progress.cached > 0 && <span className={styles.jobCached}> ({progress.cached} cached)</span>}
+      </div>
+      {progress.currentJob && progress.status === 'processing' && (
+        <div className={styles.jobCurrent}>
+          <span className={styles.spinner} /> {progress.currentJob}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface StageRowProps {
   stage: StageState;
 }
@@ -100,6 +123,9 @@ export function StageRow({ stage }: StageRowProps) {
             <ProviderRow key={p.id} provider={p} />
           ))}
         </div>
+      )}
+      {stage.status === 'running' && stage.jobProgress && (
+        <JobProgress progress={stage.jobProgress} />
       )}
     </div>
   );
